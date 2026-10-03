@@ -22,7 +22,8 @@ with ZipFile(ipa) as archive:
 version = info["CFBundleShortVersionString"]
 build = info["CFBundleVersion"]
 bundle_id = info["CFBundleIdentifier"]
-if str(build) != run_number or bundle_id != "it.courtside.camera":
+if (str(build) != run_number or str(version) != f"1.0.{run_number}"
+        or bundle_id != "it.courtside.camera"):
     raise SystemExit("IPA version or bundle ID differs from expected build")
 
 source = {
@@ -40,7 +41,6 @@ source = {
             "versions": [
                 {
                     "version": str(version),
-                    "buildVersion": str(build),
                     "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     "downloadURL": f"{base}/releases/download/{tag}/BAT-tv-SideStore.ipa",
                     "size": ipa.stat().st_size,

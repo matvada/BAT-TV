@@ -22,7 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Imposta numero build
-        run: plutil -replace CFBundleVersion -string "$GITHUB_RUN_NUMBER" 'iPhone/COURTSIDE/Info.plist'
+        run: |
+          plutil -replace CFBundleVersion -string "$GITHUB_RUN_NUMBER" 'iPhone/COURTSIDE/Info.plist'
+          plutil -replace CFBundleShortVersionString -string "1.0.$GITHUB_RUN_NUMBER" 'iPhone/COURTSIDE/Info.plist'
       - name: Compila per iPhone senza firma
         run: |
           xcodebuild -project 'iPhone/BAT-tv.xcodeproj' \
