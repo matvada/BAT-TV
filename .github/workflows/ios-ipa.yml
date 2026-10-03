@@ -1,0 +1,39 @@
+name: IPA iPhone per SideStore
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'iPhone/**'
+      - '.github/workflows/ios-ipa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ipa:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compila per iPhone senza firma
+        run: |
+          xcodebuild -project 'iPhone/BAT-tv.xcodeproj' \
+            -scheme 'BAT tv' -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/BATDerivedData" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build
+      - name: Prepara IPA per SideStore
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP/BATDerivedData/Build/Products/Release-iphoneos/BAT tv.app" "$RUNNER_TEMP/ipa/Payload/"
+          cd "$RUNNER_TEMP/ipa"
+          zip -qry "$GITHUB_WORKSPACE/BAT-tv-SideStore.ipa" Payload
+          unzip -t "$GITHUB_WORKSPACE/BAT-tv-SideStore.ipa"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BAT-tv-SideStore
+          path: BAT-tv-SideStore.ipa
+          if-no-files-found: error

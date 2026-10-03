@@ -12,10 +12,6 @@ L’APK `BAT-tv-Android.apk` è compilato e firmato per la prova diretta su **An
 
 Apri `iPhone/BAT-tv.xcodeproj` con Xcode 26 o successivo. Seleziona il tuo Team in Signing & Capabilities e l’iPhone collegato, poi premi Run. HaishinKit 2.2.5 rimane il motore video. L’aggiornamento Bluetooth/ibrido è stato preparato su Linux: **questa nuova versione iPhone non è stata compilata qui**. La precedente versione Camera era stata compilata sul Mac dell’utente.
 
-### IPA automatico senza Mac locale
-
-Apri la scheda **Actions** della repository GitHub, seleziona **IPA iPhone per SideStore**, premi **Run workflow**. La stessa compilazione parte quando viene modificata la cartella `iPhone` su `main`. Al termine apri la run e scarica l'artifact **BAT-tv-SideStore**; nello ZIP trovi `BAT-tv-SideStore.ipa`. Aprilo su iPhone con SideStore, già configurato con il tuo account Apple. La pipeline usa un Mac GitHub e Xcode 26, costruisce per dispositivo iOS senza certificati Apple e consegna un IPA non firmato: **SideStore provvede alla firma e all'installazione**. Il primo avvio della pipeline verificherà davvero la compilazione iPhone di questa versione.
-
 ## Prima prova, senza Wi-Fi e senza account
 
 1. Attiva Bluetooth su entrambi i dispositivi. Apri BAT tv e tienila aperta in primo piano, in orizzontale.
@@ -49,6 +45,6 @@ Servizio GATT `BA7A0001-9130-4D77-A6E0-BA7A20140001`; comando RX `...0002...`; s
 
 Android Studio con SDK 36, JDK 17 e Gradle 8.11.1. Apri la cartella Android, lascia che Android Studio crei local.properties con il tuo percorso SDK e usa Build APKs. Da terminale: `./gradlew :app:assembleDebug`.
 
-La dipendenza video è RootEncoder 2.6.4 (Apache 2.0) distribuita tramite JitPack. La firma di test usata per il primo APK distribuito non è inclusa nella repository pubblica. Le future build Android da questa repository avranno una firma diversa: disinstalla il primo APK prima di installarne una. Per la distribuzione pubblica serve una firma di produzione privata e stabile.
+La dipendenza video è RootEncoder 2.6.4 (Apache 2.0) distribuita tramite JitPack. Il progetto include una chiave **di test** in Android/signing per mantenere la stessa firma nelle ricompilazioni di questa prova; non è una chiave di distribuzione. Per una distribuzione pubblica va creata una firma di produzione separata.
 
 Il logo è ricavato dal centro del banner BAT TV scelto dall’utente. Viola #512A7D, giallo #FFFE0F e bianco.

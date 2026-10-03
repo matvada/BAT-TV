@@ -1,0 +1,16 @@
+const {chromium}=require('playwright');
+(async()=>{const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});const page=await browser.newPage({viewport:{width:1400,height:850}});
+await page.addInitScript(()=>{window.outbox=[];window.Native={dispatch(raw){const o=JSON.parse(raw);outbox.push(o);if(o.type==='role')receive({type:'role',role:o.role,pin:'123456'});}}});
+await page.goto(require('url').pathToFileURL(require('path').resolve(__dirname,'../Android/app/src/main/assets/index.html')).href);
+await page.getByRole('button',{name:'Regia Gestisci diretta, grafiche e punteggi.'}).click();
+await page.evaluate(()=>receive({type:'state',state:{home:{name:'BAT',score:31,fouls:2,timeouts:1},away:{name:'AVVERSARI',score:28,fouls:3,timeouts:0},quarter:2,clock:487,running:false,startedAt:Date.now(),showScore:true},serverNow:Date.now(),cameraReady:true,publishing:false}));
+await page.getByRole('button',{name:'+2',exact:true}).first().click();
+const cmd=await page.evaluate(()=>outbox.at(-1));if(cmd.action!=='score'||cmd.team!=='home'||cmd.value!==2||!cmd.id)throw Error('Score dispatch failed');
+await page.getByRole('button',{name:'♥ Kiss Cam · 15s'}).click();
+const kiss=await page.evaluate(()=>outbox.at(-1));if(kiss.action!=='overlay'||kiss.value!==15||kiss.text!=='kiss')throw Error('Kiss dispatch failed');
+await page.screenshot({path:require('path').join(require('os').tmpdir(),'bat-regia-ui.png'),fullPage:true});
+await page.evaluate(()=>receive({type:'unpaired'}));if(await page.locator('#remoteControl').isVisible())throw Error('Disconnected controls remain visible');
+await page.getByRole('button',{name:'Ruoli',exact:true}).click();await page.getByRole('button',{name:'Punteggi Punti, falli, timeout e cronometro.'}).click();
+await page.evaluate(()=>receive({type:'state',state:{home:{name:'BAT',score:0,fouls:0,timeouts:0},away:{name:'AVVERSARI',score:0,fouls:0,timeouts:0},quarter:1,clock:600,running:false,startedAt:Date.now(),showScore:true},serverNow:Date.now()}));
+if(await page.locator('#graphics').isVisible())throw Error('Scores role exposes graphics');
+console.log('PASS: role selection, score dispatch, timed Kiss Cam, disconnect controls, scores role');await browser.close();})().catch(e=>{console.error(e);process.exit(1)});

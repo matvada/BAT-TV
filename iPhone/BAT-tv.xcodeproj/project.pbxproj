@@ -1,0 +1,52 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 56;
+ objects = {
+  /* Build files */
+  A00000000000000000000001 = {isa = PBXBuildFile; fileRef = B00000000000000000000001; };
+  A00000000000000000000002 = {isa = PBXBuildFile; fileRef = B00000000000000000000002; };
+  A00000000000000000000003 = {isa = PBXBuildFile; fileRef = B00000000000000000000003; };
+  A00000000000000000000004 = {isa = PBXBuildFile; fileRef = B00000000000000000000004; };
+  A00000000000000000000005 = {isa = PBXBuildFile; fileRef = B00000000000000000000005; };
+  A00000000000000000000006 = {isa = PBXBuildFile; fileRef = B00000000000000000000006; };
+  A00000000000000000000007 = {isa = PBXBuildFile; fileRef = B00000000000000000000007; };
+  A00000000000000000000008 = {isa = PBXBuildFile; productRef = C00000000000000000000001; };
+  A00000000000000000000009 = {isa = PBXBuildFile; productRef = C00000000000000000000002; };
+  A00000000000000000000010 = {isa = PBXBuildFile; fileRef = B00000000000000000000010; };
+  /* Files */
+  B00000000000000000000010 = {isa = PBXFileReference; lastKnownFileType = folder; path = BATWeb; sourceTree = "<group>"; };
+  B00000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameModels.swift; sourceTree = "<group>"; };
+  B00000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
+  B00000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchBridge.swift; sourceTree = "<group>"; };
+  B00000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreboardRenderer.swift; sourceTree = "<group>"; };
+  B00000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraEngine.swift; sourceTree = "<group>"; };
+  B00000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+  B00000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+  B00000000000000000000008 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+  B00000000000000000000009 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "BAT tv.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+  /* Groups */
+  D00000000000000000000001 = {isa = PBXGroup; children = (D00000000000000000000002, D00000000000000000000003,); sourceTree = "<group>"; };
+  D00000000000000000000002 = {isa = PBXGroup; children = (B00000000000000000000001,B00000000000000000000002,B00000000000000000000003,B00000000000000000000004,B00000000000000000000005,B00000000000000000000006,B00000000000000000000007,B00000000000000000000008,B00000000000000000000010,); path = COURTSIDE; sourceTree = "<group>"; };
+  D00000000000000000000003 = {isa = PBXGroup; children = (B00000000000000000000009,); name = Products; sourceTree = "<group>"; };
+  /* Build phases */
+  E00000000000000000000001 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000001,A00000000000000000000002,A00000000000000000000003,A00000000000000000000004,A00000000000000000000005,A00000000000000000000006,); runOnlyForDeploymentPostprocessing = 0; };
+  E00000000000000000000002 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000007,A00000000000000000000010,); runOnlyForDeploymentPostprocessing = 0; };
+  E00000000000000000000003 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000008,A00000000000000000000009,); runOnlyForDeploymentPostprocessing = 0; };
+  /* Native target */
+  F00000000000000000000001 = {isa = PBXNativeTarget; buildConfigurationList = F00000000000000000000003; buildPhases = (E00000000000000000000001,E00000000000000000000002,E00000000000000000000003,); buildRules = (); dependencies = (); name = "BAT tv"; packageProductDependencies = (C00000000000000000000001,C00000000000000000000002,); productName = "BAT tv"; productReference = B00000000000000000000009; productType = "com.apple.product-type.application"; };
+  /* Project */
+  F00000000000000000000002 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 1640; TargetAttributes = {F00000000000000000000001 = {CreatedOnToolsVersion = 16.4; }; }; }; buildConfigurationList = F00000000000000000000004; compatibilityVersion = "Xcode 14.0"; developmentRegion = it; hasScannedForEncodings = 0; knownRegions = (it,Base,); mainGroup = D00000000000000000000001; packageReferences = (C00000000000000000000003,); productRefGroup = D00000000000000000000003; projectDirPath = ""; projectRoot = ""; targets = (F00000000000000000000001,); };
+  F00000000000000000000003 = {isa = XCConfigurationList; buildConfigurations = (F00000000000000000000005,F00000000000000000000006,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  F00000000000000000000004 = {isa = XCConfigurationList; buildConfigurations = (F00000000000000000000007,F00000000000000000000008,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  F00000000000000000000005 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = COURTSIDE/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = it.courtside.camera; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Debug; };
+  F00000000000000000000006 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = COURTSIDE/Info.plist; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = it.courtside.camera; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Release; };
+  F00000000000000000000007 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CODE_SIGN_STYLE = Automatic; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+  F00000000000000000000008 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CODE_SIGN_STYLE = Automatic; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_COMPILATION_MODE = wholemodule; }; name = Release; };
+  C00000000000000000000003 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/HaishinKit/HaishinKit.swift"; requirement = {kind = exactVersion; version = 2.2.5; }; };
+  C00000000000000000000001 = {isa = XCSwiftPackageProductDependency; package = C00000000000000000000003; productName = HaishinKit; };
+  C00000000000000000000002 = {isa = XCSwiftPackageProductDependency; package = C00000000000000000000003; productName = RTMPHaishinKit; };
+ };
+ rootObject = F00000000000000000000002;
+}
