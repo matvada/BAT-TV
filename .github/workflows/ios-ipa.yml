@@ -56,9 +56,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
       - name: Prepara Android SDK 36
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          "$SDKMANAGER" 'platforms;android-36' 'build-tools;35.0.0'
       - name: Compila APK Android di prova
         working-directory: Android
         run: ./gradlew --no-daemon :app:assembleDebug -PbuildNumber="$GITHUB_RUN_NUMBER"
