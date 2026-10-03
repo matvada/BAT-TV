@@ -50,6 +50,7 @@ final class CameraEngine: ObservableObject {
     private var serverOffset = 0.0
 
     init() {
+        preview.videoGravity = .resizeAspectFill
         streamKey = Secrets.load()
         // The address itself is not a credential. Keep the Facebook key in Keychain.
         serverURL = UserDefaults.standard.string(forKey: "facebookRTMPSURL") ?? ""
@@ -63,6 +64,18 @@ final class CameraEngine: ObservableObject {
     func configureDestination() {
         Secrets.save(streamKey.trimmingCharacters(in: .whitespacesAndNewlines))
         UserDefaults.standard.set(serverURL.trimmingCharacters(in: .whitespacesAndNewlines), forKey: "facebookRTMPSURL")
+    }
+
+    private func captureOrientation() -> AVCaptureVideoOrientation {
+        let orientation = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }?.interfaceOrientation
+        return orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+    }
+
+    func updateCameraOrientation() async {
+        guard cameraReady else { return }
+        await mixer.setVideoOrientation(captureOrientation())
     }
 
     func startCamera() async {
@@ -83,6 +96,7 @@ final class CameraEngine: ObservableObject {
             var mixerSettings = await mixer.videoMixerSettings
             mixerSettings.mode = .offscreen
             await mixer.setVideoMixerSettings(mixerSettings)
+            await mixer.setVideoOrientation(captureOrientation())
             try await mixer.attachVideo(video)
             try await mixer.attachAudio(microphone)
             await mixer.addOutput(stream)

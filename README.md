@@ -12,9 +12,9 @@ L’APK `BAT-tv-Android.apk` è compilato e firmato per la prova diretta su **An
 
 In SideStore aggiungi come sorgente `https://raw.githubusercontent.com/matvada/BAT-TV/main/altstore.json`, poi scegli **BAT tv** e premi Installa. La sorgente contiene la build iPhone più recente e SideStore mostra gli aggiornamenti successivi. Come alternativa, apri `iPhone/BAT-tv.xcodeproj` con Xcode 26 o successivo, seleziona il tuo Team e l’iPhone collegato, poi premi Run. HaishinKit 2.2.5 rimane il motore video. La prima versione iPhone ibrida è stata compilata da GitHub Actions, ma non ancora provata su dispositivi reali.
 
-### IPA automatico senza Mac locale
+### IPA e APK automatici
 
-La compilazione parte dopo modifiche nella cartella `iPhone` su `main` o manualmente dalla scheda **Actions** scegliendo **IPA iPhone per SideStore** e **Run workflow**. La pipeline costruisce su un Mac GitHub con Xcode 26, pubblica l'IPA non firmato nelle **Releases** e aggiorna `altstore.json` con il numero di build e il link corrispondente. La sorgente viene aggiornata soltanto dopo che il download pubblico dell'IPA è stato verificato. SideStore firma e installa sul dispositivo con il tuo account Apple.
+La compilazione parte dopo modifiche all'app su `main` o manualmente dalla scheda **Actions** scegliendo **BAT tv · IPA e APK** e **Run workflow**. La pipeline costruisce l'iPhone su un Mac GitHub e Android su Linux. Pubblica **un IPA e un APK nella stessa Release** soltanto quando entrambe le compilazioni riescono, poi aggiorna `altstore.json` con il numero di build e il link all'IPA. SideStore firma e installa sul dispositivo con il tuo account Apple.
 
 ## Prima prova, senza Wi-Fi e senza account
 
@@ -23,7 +23,7 @@ La compilazione parte dopo modifiche nella cartella `iPhone` su `main` o manualm
 3. Sul secondo dispositivo scegli **Regia** oppure **Punteggi**. Premi Cerca via Bluetooth e seleziona la Camera.
 4. Conferma gli eventuali avvisi di sistema per i dispositivi nelle vicinanze e l’abbinamento Bluetooth. Inserisci nell’app il codice a sei cifre mostrato dalla Camera e premi Abbina. I punteggi appaiono dopo la conferma della Camera.
 5. Prova +2 e Pausa/Avvia. In Regia prova Kiss Cam. Il cambio di stato viene applicato sulla Camera e restituito al controller.
-6. Attiva la Camera, consenti camera e microfono e verifica gli overlay nell’anteprima **del dispositivo Camera**.
+6. Attiva la Camera, consenti camera e microfono e verifica gli overlay nell’anteprima **del dispositivo Camera**. Premi **Nascondi codice e comandi** per vedere il video a tutto schermo; **Mostra comandi** riapre il pannello Bluetooth e le impostazioni della diretta.
 7. Sulla Camera inserisci indirizzo RTMPS e chiave ottenuti da Facebook Live Producer. Internet (anche 4G/5G) serve alla sola Camera. Premi Invia e controlla la ricezione in Facebook prima di pubblicare la diretta.
 8. Ferma l’invio prima di cambiare ruolo o chiudere l’app.
 
@@ -49,6 +49,6 @@ Servizio GATT `BA7A0001-9130-4D77-A6E0-BA7A20140001`; comando RX `...0002...`; s
 
 Android Studio con SDK 36, JDK 17 e Gradle 8.11.1. Apri la cartella Android, lascia che Android Studio crei local.properties con il tuo percorso SDK e usa Build APKs. Da terminale: `./gradlew :app:assembleDebug`.
 
-La dipendenza video è RootEncoder 2.6.4 (Apache 2.0) distribuita tramite JitPack. La firma di test usata per il primo APK distribuito non è inclusa nella repository pubblica. Le future build Android da questa repository avranno una firma diversa: disinstalla il primo APK prima di installarne una. Per la distribuzione pubblica serve una firma di produzione privata e stabile.
+La dipendenza video è RootEncoder 2.6.4 (Apache 2.0) distribuita tramite JitPack. Gli APK automatici sono firmati con una chiave di prova creata dal runner GitHub per ogni compilazione. Per passare da un APK automatico al successivo occorre disinstallare quello precedente (i dati locali vengono persi). Per aggiornamenti Android senza reinstallazione serve configurare una firma privata e stabile nei segreti del repository.
 
 Il logo è ricavato dal centro del banner BAT TV scelto dall’utente. Viola #512A7D, giallo #FFFE0F e bianco.

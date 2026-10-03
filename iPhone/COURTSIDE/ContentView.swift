@@ -18,8 +18,17 @@ struct ContentView: View {
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
-        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .onAppear {
+            UIApplication.shared.isIdleTimerDisabled = true
+            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            Task { await camera.updateCameraOrientation() }
+        }
+        .onDisappear {
+            UIApplication.shared.isIdleTimerDisabled = false
+            UIDevice.current.endGeneratingDeviceOrientationNotifications()
+        }
     }
 }
 

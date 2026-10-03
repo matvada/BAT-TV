@@ -1,4 +1,4 @@
-name: IPA iPhone per SideStore
+name: BAT tv · IPA e APK
 
 on:
   workflow_dispatch:
@@ -6,17 +6,19 @@ on:
     branches: [main]
     paths:
       - 'iPhone/**'
+      - 'Android/**'
+      - 'scripts/update_altsource.py'
       - '.github/workflows/ios-ipa.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: bat-tv-ipa-publish
+  group: bat-tv-publish
   cancel-in-progress: false
 
 jobs:
-  ipa:
+  iphone:
     runs-on: macos-26
     timeout-minutes: 45
     steps:
@@ -42,29 +44,64 @@ jobs:
           unzip -t "$GITHUB_WORKSPACE/BAT-tv-SideStore.ipa"
       - uses: actions/upload-artifact@v4
         with:
-          name: BAT-tv-SideStore
+          name: BAT-tv-iPhone
           path: BAT-tv-SideStore.ipa
           if-no-files-found: error
-      - name: Pubblica IPA come Release
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepara Android SDK 36
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+      - name: Compila APK Android di prova
+        working-directory: Android
+        run: ./gradlew --no-daemon :app:assembleDebug -PbuildNumber="$GITHUB_RUN_NUMBER"
+      - name: Prepara APK
+        run: cp Android/app/build/outputs/apk/debug/app-debug.apk BAT-tv-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BAT-tv-Android
+          path: BAT-tv-Android.apk
+          if-no-files-found: error
+  publish:
+    needs: [iphone, android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: BAT-tv-iPhone
+      - uses: actions/download-artifact@v4
+        with:
+          name: BAT-tv-Android
+      - name: Pubblica entrambi nella stessa Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="ios-build-${GITHUB_RUN_NUMBER}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" BAT-tv-SideStore.ipa --clobber
+            gh release upload "$TAG" BAT-tv-SideStore.ipa BAT-tv-Android.apk --clobber
           else
-            gh release create "$TAG" BAT-tv-SideStore.ipa \
+            gh release create "$TAG" BAT-tv-SideStore.ipa BAT-tv-Android.apk \
               --target "$GITHUB_SHA" \
-              --title "BAT tv iPhone · build ${GITHUB_RUN_NUMBER}" \
-              --notes "IPA non firmato per SideStore. Versione di prova."
+              --title "BAT tv · build ${GITHUB_RUN_NUMBER}" \
+              --notes "IPA per SideStore e APK Android di prova."
           fi
-          curl -fsSL --retry 3 --retry-delay 2 \
-            "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/BAT-tv-SideStore.ipa" \
-            -o "$RUNNER_TEMP/verify-release.ipa"
-          cmp BAT-tv-SideStore.ipa "$RUNNER_TEMP/verify-release.ipa"
+          for file in BAT-tv-SideStore.ipa BAT-tv-Android.apk; do
+            curl -fsSL --retry 8 --retry-all-errors --retry-delay 2 \
+              "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${file}" \
+              -o "$RUNNER_TEMP/$file"
+            cmp "$file" "$RUNNER_TEMP/$file"
+          done
       - name: Aggiorna la sorgente SideStore
         run: |
-          git restore 'iPhone/COURTSIDE/Info.plist'
           git pull --rebase origin main
           python3 scripts/update_altsource.py BAT-tv-SideStore.ipa "$GITHUB_RUN_NUMBER"
           git config user.name 'github-actions[bot]'
