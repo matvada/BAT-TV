@@ -97,14 +97,28 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   Bitmap b=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
   if(s.optBoolean("showScore")){p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(58,520,1222,604,14,14,p);label(c,p,h.optString("name"),86,571,24,Color.WHITE);label(c,p,""+h.optInt("score"),460,577,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,577,42,Color.WHITE);label(c,p,a.optString("name"),925,571,24,Color.WHITE);
-   int r=game.remaining();label(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),565,563,32,Color.rgb(255,254,15));label(c,p,"Q"+s.optInt("quarter"),612,592,18,Color.LTGRAY);}
+   String quarter=s.optInt("quarter")<=4?"Q"+s.optInt("quarter"):"OT"+(s.optInt("quarter")-4);
+   if(s.optBoolean("clockEnabled",true)){int r=game.remaining();label(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),565,563,32,Color.rgb(255,254,15));label(c,p,quarter,612,592,18,Color.LTGRAY);}
+   else{p.setTextAlign(Paint.Align.CENTER);label(c,p,quarter,640,584,58,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}}
   String overlay=s.optString("overlay");if(s.optDouble("overlayUntil")>0&&System.currentTimeMillis()>s.optDouble("overlayUntil"))overlay="";
-  if(overlay.equals("kiss")){p.setColor(Color.rgb(255,254,15));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(14);c.drawRoundRect(30,80,1250,640,32,32,p);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(81,42,125));c.drawRoundRect(385,80,895,175,14,14,p);label(c,p,"KISS CAM",425,147,60,Color.WHITE);label(c,p,"♥",80,260,96,Color.rgb(255,254,15));label(c,p,"♥",1080,260,96,Color.rgb(255,254,15));}
-  else if(overlay.equals("triple")){p.setColor(Color.rgb(255,254,15));c.drawRoundRect(292,210,988,380,14,14,p);label(c,p,"TRIPLA!",430,326,88,Color.BLACK);}
-  else if(overlay.equals("break")||overlay.equals("final")){p.setColor(Color.argb(225,81,42,125));c.drawRect(0,0,1280,720,p);label(c,p,overlay.equals("final")?"FINE PARTITA":"INTERVALLO",280,350,70,Color.WHITE);label(c,p,h.optString("name")+"  "+h.optInt("score")+" – "+a.optInt("score")+"  "+a.optString("name"),200,430,38,Color.rgb(255,254,15));}
-  else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,400,1222,490,14,14,p);label(c,p,s.optString("caption"),86,461,36,Color.WHITE);}
+  if(overlay.equals("kiss")){p.setColor(Color.rgb(81,42,125));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(28);c.drawRoundRect(30,80,1250,640,32,32,p);p.setColor(Color.rgb(255,254,15));p.setStrokeWidth(12);c.drawRoundRect(30,80,1250,640,32,32,p);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(81,42,125));c.drawRoundRect(350,80,930,180,16,16,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,"♥  KISS CAM  ♥",640,151,58,Color.WHITE);label(c,p,"♥",145,244,92,Color.rgb(255,254,15));label(c,p,"♥",1135,244,92,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
+  else if(overlay.equals("triple"))drawTriple(c,p,System.currentTimeMillis());
+  else if(overlay.equals("break")||overlay.equals("final")){p.setColor(Color.argb(230,81,42,125));c.drawRect(0,0,1280,720,p);p.setColor(Color.argb(85,0,0,0));c.drawRoundRect(170,205,1110,465,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(170,205,180,465,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,overlay.equals("final")?"FINE PARTITA":"INTERVALLO",640,327,76,Color.WHITE);label(c,p,h.optString("name")+"  "+h.optInt("score")+" – "+a.optInt("score")+"  "+a.optString("name"),640,409,38,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
+  else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,400,1222,490,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(58,400,67,490,p);label(c,p,s.optString("caption"),86,461,36,Color.WHITE);}
   p.setColor(Color.WHITE);c.drawBitmap(logo,null,new Rect(1162,82,1242,162),p);
   if(filter!=null)filter.setImage(b);
+ }
+ private void drawTriple(Canvas c,Paint p,long now){
+  float pulse=1f+(float)Math.sin(now/170.0)*0.018f;c.save();c.scale(pulse,pulse,640,325);
+  for(int i=0;i<14;i++){double angle=i*Math.PI*2/14+now/900.0;float inner=187,outer=i%2==0?234:218;
+   p.setColor(i%2==0?Color.argb(230,255,254,15):Color.argb(140,255,254,15));p.setStrokeWidth(i%2==0?10:5);p.setStrokeCap(Paint.Cap.ROUND);
+   c.drawLine(640+(float)Math.cos(angle)*inner,325+(float)Math.sin(angle)*inner,640+(float)Math.cos(angle)*outer,325+(float)Math.sin(angle)*outer,p);}
+  p.setColor(Color.rgb(255,254,15));c.drawRoundRect(272,204,1008,446,16,16,p);
+  p.setColor(Color.rgb(81,42,125));c.drawRoundRect(279,211,1001,439,14,14,p);
+  p.setColor(Color.rgb(255,254,15));c.drawRoundRect(296,227,500,423,14,14,p);
+  p.setTextAlign(Paint.Align.CENTER);label(c,p,"+3",398,379,137,Color.BLACK);
+  label(c,p,"TRIPLA!",747,332,88,Color.WHITE);label(c,p,"BOMBA DA TRE",747,393,36,Color.rgb(255,254,15));
+  p.setTextAlign(Paint.Align.LEFT);c.restore();
  }
  private void label(Canvas c,Paint p,String text,int x,int y,int size,int color){p.setTextSize(size);p.setColor(color);c.drawText(text,x,y,p);}
  public final class Bridge {

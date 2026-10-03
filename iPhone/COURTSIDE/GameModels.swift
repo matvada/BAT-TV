@@ -14,6 +14,7 @@ struct Game: Codable {
     var away: Team
     var quarter: Int
     var clock: Double
+    var clockEnabled: Bool
     var running: Bool
     var startedAt: Double
     var overlay: String
@@ -22,6 +23,37 @@ struct Game: Codable {
     var showScore: Bool
     var live: Bool
     var liveCommand: Double
+
+    private enum CodingKeys: String, CodingKey {
+        case home, away, quarter, clock, clockEnabled, running, startedAt
+        case overlay, overlayUntil, caption, showScore, live, liveCommand
+    }
+
+    init(from decoder: Decoder) throws {
+        let value = try decoder.container(keyedBy: CodingKeys.self)
+        home = try value.decode(Team.self, forKey: .home)
+        away = try value.decode(Team.self, forKey: .away)
+        quarter = try value.decode(Int.self, forKey: .quarter)
+        clock = try value.decode(Double.self, forKey: .clock)
+        clockEnabled = try value.decodeIfPresent(Bool.self, forKey: .clockEnabled) ?? true
+        running = try value.decode(Bool.self, forKey: .running)
+        startedAt = try value.decode(Double.self, forKey: .startedAt)
+        overlay = try value.decode(String.self, forKey: .overlay)
+        overlayUntil = try value.decode(Double.self, forKey: .overlayUntil)
+        caption = try value.decode(String.self, forKey: .caption)
+        showScore = try value.decode(Bool.self, forKey: .showScore)
+        live = try value.decode(Bool.self, forKey: .live)
+        liveCommand = try value.decode(Double.self, forKey: .liveCommand)
+    }
+
+    init(home: Team, away: Team, quarter: Int, clock: Double, clockEnabled: Bool,
+         running: Bool, startedAt: Double, overlay: String, overlayUntil: Double,
+         caption: String, showScore: Bool, live: Bool, liveCommand: Double) {
+        self.home = home; self.away = away; self.quarter = quarter; self.clock = clock
+        self.clockEnabled = clockEnabled; self.running = running; self.startedAt = startedAt
+        self.overlay = overlay; self.overlayUntil = overlayUntil; self.caption = caption
+        self.showScore = showScore; self.live = live; self.liveCommand = liveCommand
+    }
 
     func remaining(at serverNow: Double) -> Int {
         var value = clock - (running ? (serverNow - startedAt) / 1000 : 0)
@@ -70,7 +102,7 @@ extension Game {
     static func fresh(now: Double) -> Game {
         Game(home: Team(name: "BAT", color: "#512A7D", logo: "", score: 0, fouls: 0, timeouts: 0),
              away: Team(name: "AVVERSARI", color: "#FFFE0F", logo: "", score: 0, fouls: 0, timeouts: 0),
-             quarter: 1, clock: 600, running: false, startedAt: now,
+             quarter: 1, clock: 600, clockEnabled: true, running: false, startedAt: now,
              overlay: "", overlayUntil: 0, caption: "", showScore: true, live: false, liveCommand: 0)
     }
 
@@ -86,12 +118,16 @@ extension Game {
             }
             if team == "home" { home = target } else { away = target }
         case "clockStart":
-            if !running && clock > 0 { running = true; startedAt = now }
+            if clockEnabled && !running && clock > 0 { running = true; startedAt = now }
         case "clockStop":
             clock = Double(remaining(at: now)); running = false; startedAt = now
         case "clockSet":
             guard let value, (0...3600).contains(value) else { return false }
             clock = Double(value); startedAt = now; running = false
+        case "clockEnabled":
+            guard let value, value == 0 || value == 1 else { return false }
+            clock = Double(remaining(at: now)); startedAt = now; running = false
+            clockEnabled = value == 1
         case "quarter":
             guard let value, (1...12).contains(value) else { return false }
             quarter = value

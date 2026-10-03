@@ -22,7 +22,8 @@ La compilazione parte dopo modifiche all'app su `main` o manualmente dalla sched
 2. Sul dispositivo che riprende scegli **Camera**. Compare un codice a sei cifre e l’app rende disponibile il servizio Bluetooth.
 3. Sul secondo dispositivo scegli **Regia** oppure **Punteggi**. Premi Cerca via Bluetooth e seleziona la Camera.
 4. Conferma gli eventuali avvisi di sistema per i dispositivi nelle vicinanze e l’abbinamento Bluetooth. Inserisci nell’app il codice a sei cifre mostrato dalla Camera e premi Abbina. I punteggi appaiono dopo la conferma della Camera.
-5. Prova +2 e Pausa/Avvia. In Regia prova Kiss Cam. Il cambio di stato viene applicato sulla Camera e restituito al controller.
+5. Prova +2 e Pausa/Avvia. In Regia prova Kiss Cam e la grafica **Tripla** da 5 secondi, con raggiera animata e +3. Il cambio di stato viene applicato sulla Camera e restituito al controller.
+   Nella scheda **Tempo** lo switch **Gestisci tempo** può disattivare il cronometro: la Camera ferma il conteggio e nella diretta compare solo il quarto, grande al centro della barra. Riattivandolo, il tempo rimane in pausa finché non premi **Avvia**. I pulsanti **Quarto +/−** funzionano in entrambe le modalità.
 6. Sul dispositivo Camera tocca il **logo BAT tv in alto a destra** per aprire il pannello laterale. Le schede **Collega**, **Camera** e **Diretta** contengono codice Bluetooth, ripresa e invio RTMPS. **Chiudi** fa scivolare via il pannello e lascia l’anteprima a schermo intero. La zona da toccare è trasparente quando la Camera è attiva e non compare nella diretta. Regia e Punteggi usano schede per i comandi, senza scorrimento della pagina.
 7. Sulla Camera inserisci indirizzo RTMPS e chiave ottenuti da Facebook Live Producer. Internet (anche 4G/5G) serve alla sola Camera. Premi Invia e controlla la ricezione in Facebook prima di pubblicare la diretta.
 8. Ferma l’invio prima di cambiare ruolo o chiudere l’app.

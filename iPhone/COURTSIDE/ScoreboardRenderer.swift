@@ -14,15 +14,16 @@ final class ScoreboardRenderer {
             if game.showScore { drawScore(game, at: serverNow, in: cg) }
             switch game.visibleOverlay(at: serverNow) {
             case "kiss": drawKiss(in: cg)
-            case "triple":
-                fill(CGRect(x: 292, y: 210, width: 696, height: 170), BATBrand.yellow.withAlphaComponent(0.96), in: cg)
-                label("TRIPLA!", in: CGRect(x: 292, y: 210, width: 696, height: 170), size: 94, color: .black)
+            case "triple": drawTriple(in: cg, at: serverNow)
             case "break", "final":
-                fill(CGRect(origin: .zero, size: size), BATBrand.purple.withAlphaComponent(0.88), in: cg)
-                label(game.overlay == "final" ? "FINE PARTITA" : "INTERVALLO", in: CGRect(x: 80, y: 270, width: 1120, height: 120), size: 75)
-                label("\(game.home.name)  \(game.home.score) – \(game.away.score)  \(game.away.name)", in: CGRect(x: 80, y: 395, width: 1120, height: 100), size: 40, color: BATBrand.yellow)
+                fill(CGRect(origin: .zero, size: size), BATBrand.purple.withAlphaComponent(0.9), in: cg)
+                fill(CGRect(x: 170, y: 205, width: 940, height: 260), UIColor.black.withAlphaComponent(0.27), in: cg)
+                fill(CGRect(x: 170, y: 205, width: 10, height: 260), BATBrand.yellow, in: cg)
+                label(game.overlay == "final" ? "FINE PARTITA" : "INTERVALLO", in: CGRect(x: 205, y: 238, width: 870, height: 104), size: 76)
+                label("\(game.home.name)  \(game.home.score) – \(game.away.score)  \(game.away.name)", in: CGRect(x: 220, y: 350, width: 840, height: 75), size: 38, color: BATBrand.yellow)
             case "caption":
                 fill(CGRect(x: 58, y: 400, width: 1164, height: 90), BATBrand.purple.withAlphaComponent(0.96), in: cg)
+                fill(CGRect(x: 58, y: 400, width: 9, height: 90), BATBrand.yellow, in: cg)
                 label(game.caption, in: CGRect(x: 86, y: 410, width: 1108, height: 70), size: 45, alignment: .left)
             default: break
             }
@@ -48,20 +49,55 @@ final class ScoreboardRenderer {
         label("\(game.home.score)", in: CGRect(x: 447, y: 603, width: 90, height: 57), size: 40)
         label("\(game.away.score)", in: CGRect(x: 743, y: 603, width: 90, height: 57), size: 40)
         label(game.away.name.uppercased(), in: CGRect(x: 899, y: 603, width: 230, height: 57), size: 23, alignment: .right)
-        label(game.clockText(at: now), in: CGRect(x: 550, y: 597, width: 180, height: 40), size: 30, color: BATBrand.yellow)
-        label(game.quarter <= 4 ? "Q\(game.quarter)" : "OT\(game.quarter - 4)", in: CGRect(x: 550, y: 636, width: 180, height: 26), size: 16, color: .lightGray)
+        let quarter = game.quarter <= 4 ? "Q\(game.quarter)" : "OT\(game.quarter - 4)"
+        if game.clockEnabled {
+            label(game.clockText(at: now), in: CGRect(x: 550, y: 597, width: 180, height: 40), size: 30, color: BATBrand.yellow)
+            label(quarter, in: CGRect(x: 550, y: 636, width: 180, height: 26), size: 16, color: .lightGray)
+        } else {
+            label(quarter, in: CGRect(x: 530, y: 591, width: 220, height: 80), size: 56, color: BATBrand.yellow)
+        }
     }
 
     private func drawKiss(in cg: CGContext) {
         cg.setStrokeColor(BATBrand.yellow.cgColor)
-        cg.setLineWidth(16)
+        cg.setLineWidth(12)
+        cg.setShadow(offset: .zero, blur: 14, color: BATBrand.yellow.withAlphaComponent(0.85).cgColor)
         let border = UIBezierPath(roundedRect: CGRect(x: 30, y: 80, width: 1220, height: 560), cornerRadius: 32)
         cg.addPath(border.cgPath)
         cg.strokePath()
-        fill(CGRect(x: 385, y: 80, width: 510, height: 95), BATBrand.purple, in: cg)
-        label("KISS CAM", in: CGRect(x: 405, y: 80, width: 470, height: 95), size: 65)
-        label("♥", in: CGRect(x: 80, y: 150, width: 120, height: 110), size: 100, color: BATBrand.yellow)
-        label("♥", in: CGRect(x: 1080, y: 150, width: 120, height: 110), size: 100, color: BATBrand.yellow)
+        cg.setShadow(offset: .zero, blur: 0)
+        fill(CGRect(x: 350, y: 80, width: 580, height: 100), BATBrand.purple.withAlphaComponent(0.95), in: cg)
+        label("♥  KISS CAM  ♥", in: CGRect(x: 375, y: 82, width: 530, height: 94), size: 58)
+        label("♥", in: CGRect(x: 85, y: 160, width: 115, height: 100), size: 92, color: BATBrand.yellow)
+        label("♥", in: CGRect(x: 1080, y: 160, width: 115, height: 100), size: 92, color: BATBrand.yellow)
+    }
+
+    private func drawTriple(in cg: CGContext, at now: Double) {
+        let pulse = 1 + CGFloat(sin(now / 170)) * 0.018
+        cg.saveGState()
+        defer { cg.restoreGState() }
+        cg.translateBy(x: 640, y: 325)
+        cg.scaleBy(x: pulse, y: pulse)
+        cg.translateBy(x: -640, y: -325)
+        for index in 0..<14 {
+            let angle = Double(index) * (.pi * 2 / 14) + (now / 900).truncatingRemainder(dividingBy: .pi * 2)
+            let inner: CGFloat = 187
+            let outer: CGFloat = index.isMultiple(of: 2) ? 234 : 218
+            let dx = CGFloat(cos(angle))
+            let dy = CGFloat(sin(angle))
+            cg.setStrokeColor(BATBrand.yellow.withAlphaComponent(index.isMultiple(of: 2) ? 0.9 : 0.55).cgColor)
+            cg.setLineWidth(index.isMultiple(of: 2) ? 10 : 5)
+            cg.setLineCap(.round)
+            cg.move(to: CGPoint(x: 640 + dx * inner, y: 325 + dy * inner))
+            cg.addLine(to: CGPoint(x: 640 + dx * outer, y: 325 + dy * outer))
+            cg.strokePath()
+        }
+        fill(CGRect(x: 272, y: 204, width: 736, height: 242), BATBrand.yellow, in: cg)
+        fill(CGRect(x: 279, y: 211, width: 722, height: 228), BATBrand.purple, in: cg)
+        fill(CGRect(x: 296, y: 227, width: 204, height: 196), BATBrand.yellow, in: cg)
+        label("+3", in: CGRect(x: 305, y: 232, width: 186, height: 174), size: 137, color: .black)
+        label("TRIPLA!", in: CGRect(x: 520, y: 239, width: 456, height: 112), size: 88)
+        label("BOMBA DA TRE", in: CGRect(x: 533, y: 353, width: 430, height: 55), size: 36, color: BATBrand.yellow)
     }
 
     private func fill(_ rectangle: CGRect, _ color: UIColor, in cg: CGContext) {

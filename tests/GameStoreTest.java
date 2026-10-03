@@ -13,10 +13,14 @@ public class GameStoreTest {
   g.apply(c("clock","clockSet",null,5));g.apply(c("start","clockStart",null,0));
   g.state.put("startedAt",System.currentTimeMillis()-2100);check(g.remaining()==3,"elapsed time incorrect");
   g.apply(c("stop","clockStop",null,0));check(g.remaining()==3&&!g.state.getBoolean("running"),"pause failed");
+  g.apply(c("off","clockEnabled",null,0));check(!g.state.getBoolean("clockEnabled")&&!g.state.getBoolean("running"),"timer off failed");
+  g.apply(c("blocked","clockStart",null,0));check(!g.state.getBoolean("running"),"disabled timer started");
+  g.apply(c("quarter","quarter",null,2));check(g.state.getInt("quarter")==2,"quarter blocked without timer");
+  g.apply(c("on","clockEnabled",null,1));check(g.state.getBoolean("clockEnabled")&&!g.state.getBoolean("running"),"timer resumed unexpectedly");
   g.apply(c("points","score","home",3));g.apply(c("undo","undo",null,0));check(g.state.getJSONObject("home").getInt("score")==2,"undo failed");
   check(!g.apply(c("badClock","clockSet",null,3601)),"unbounded clock accepted");
   JSONObject kiss=c("kiss","overlay",null,15).put("text","kiss");g.apply(kiss);check(g.state.getString("overlay").equals("kiss")&&g.state.getDouble("overlayUntil")>System.currentTimeMillis(),"timed overlay failed");
   check(g.envelope(true,false).getJSONObject("state").getJSONObject("home").getString("name").equals("BAT"),"wire envelope invalid");
-  System.out.println("PASS: scores, replay protection, bounds, elapsed clock, pause, undo, timed overlay, wire envelope");
+  System.out.println("PASS: scores, replay protection, bounds, clock toggle, quarter, pause, undo, timed overlay, wire envelope");
  }
 }

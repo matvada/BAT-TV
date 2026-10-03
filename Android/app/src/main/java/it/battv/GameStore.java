@@ -9,7 +9,7 @@ public final class GameStore {
  private final LinkedHashSet<String> seen=new LinkedHashSet<>();
  public GameStore() { try {
   state=new JSONObject().put("home",team("BAT","#512A7D")).put("away",team("AVVERSARI","#FFFE0F"))
-   .put("quarter",1).put("clock",600).put("running",false).put("startedAt",System.currentTimeMillis())
+   .put("quarter",1).put("clock",600).put("clockEnabled",true).put("running",false).put("startedAt",System.currentTimeMillis())
    .put("overlay","").put("overlayUntil",0).put("caption","").put("showScore",true).put("live",false).put("liveCommand",0);
  }catch(JSONException e){throw new IllegalStateException(e);} }
  private JSONObject team(String n,String c)throws JSONException {return new JSONObject().put("name",n).put("color",c).put("logo","").put("score",0).put("fouls",0).put("timeouts",0);}
@@ -25,9 +25,10 @@ public final class GameStore {
     if(!t.equals("home")&&!t.equals("away")||v < -3||v>3)return false;
     String key=a.equals("score")?"score":a.equals("foul")?"fouls":"timeouts";
     JSONObject target=next.getJSONObject(t);target.put(key,Math.max(0,Math.min(a.equals("score")?999:99,target.optInt(key)+v)));break;
-   case "clockStart":if(!next.optBoolean("running")&&remaining()>0)next.put("running",true).put("startedAt",now);break;
+   case "clockStart":if(next.optBoolean("clockEnabled",true)&&!next.optBoolean("running")&&remaining()>0)next.put("running",true).put("startedAt",now);break;
    case "clockStop":next.put("clock",remaining()).put("running",false).put("startedAt",now);break;
    case "clockSet":if(v<0||v>3600)return false;next.put("clock",v).put("running",false).put("startedAt",now);break;
+   case "clockEnabled":if(v!=0&&v!=1)return false;next.put("clock",remaining()).put("running",false).put("startedAt",now).put("clockEnabled",v==1);break;
    case "quarter":if(v<1||v>12)return false;next.put("quarter",v);break;
    case "overlay":if(!Arrays.asList("","kiss","triple","break","final","caption").contains(text))return false;
     next.put("overlay",text).put("overlayUntil",v>0?now+Math.min(v,300)*1000L:0);break;
