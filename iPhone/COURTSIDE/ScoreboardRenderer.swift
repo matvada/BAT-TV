@@ -11,7 +11,6 @@ final class ScoreboardRenderer {
         format.opaque = false
         let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
             let cg = context.cgContext
-            drawChannel(in: cg)
             if game.showScore { drawScore(game, at: serverNow, in: cg) }
             switch game.visibleOverlay(at: serverNow) {
             case "kiss": drawKiss(in: cg)
@@ -23,19 +22,23 @@ final class ScoreboardRenderer {
                 label(game.overlay == "final" ? "FINE PARTITA" : "INTERVALLO", in: CGRect(x: 80, y: 270, width: 1120, height: 120), size: 75)
                 label("\(game.home.name)  \(game.home.score) – \(game.away.score)  \(game.away.name)", in: CGRect(x: 80, y: 395, width: 1120, height: 100), size: 40, color: BATBrand.yellow)
             case "caption":
-                fill(CGRect(x: 58, y: 470, width: 1164, height: 90), BATBrand.purple.withAlphaComponent(0.96), in: cg)
-                label(game.caption, in: CGRect(x: 86, y: 480, width: 1108, height: 70), size: 45, alignment: .left)
+                fill(CGRect(x: 58, y: 400, width: 1164, height: 90), BATBrand.purple.withAlphaComponent(0.96), in: cg)
+                label(game.caption, in: CGRect(x: 86, y: 410, width: 1108, height: 70), size: 45, alignment: .left)
             default: break
             }
+            drawChannel(in: cg)
         }
         return image.cgImage
     }
 
     private func drawChannel(in cg: CGContext) {
-        UIImage(named: "BATLogo")?.draw(in: CGRect(x: 1162, y: 26, width: 80, height: 80))
+        UIImage(named: "BATLogo")?.draw(in: CGRect(x: 1162, y: 82, width: 80, height: 80))
     }
 
     private func drawScore(_ game: Game, at now: Double, in cg: CGContext) {
+        cg.saveGState()
+        cg.translateBy(x: 0, y: -70)
+        defer { cg.restoreGState() }
         fill(CGRect(x: 58, y: 590, width: 1164, height: 84), BATBrand.purple.withAlphaComponent(0.96), in: cg)
         fill(CGRect(x: 58, y: 590, width: 7, height: 84), color(game.home.color), in: cg)
         fill(CGRect(x: 1215, y: 590, width: 7, height: 84), color(game.away.color), in: cg)
@@ -52,13 +55,13 @@ final class ScoreboardRenderer {
     private func drawKiss(in cg: CGContext) {
         cg.setStrokeColor(BATBrand.yellow.cgColor)
         cg.setLineWidth(16)
-        let border = UIBezierPath(roundedRect: CGRect(x: 30, y: 35, width: 1220, height: 650), cornerRadius: 32)
+        let border = UIBezierPath(roundedRect: CGRect(x: 30, y: 80, width: 1220, height: 560), cornerRadius: 32)
         cg.addPath(border.cgPath)
         cg.strokePath()
-        fill(CGRect(x: 385, y: 35, width: 510, height: 95), BATBrand.purple, in: cg)
-        label("KISS CAM", in: CGRect(x: 405, y: 35, width: 470, height: 95), size: 65)
-        label("♥", in: CGRect(x: 80, y: 105, width: 120, height: 110), size: 100, color: BATBrand.yellow)
-        label("♥", in: CGRect(x: 1080, y: 105, width: 120, height: 110), size: 100, color: BATBrand.yellow)
+        fill(CGRect(x: 385, y: 80, width: 510, height: 95), BATBrand.purple, in: cg)
+        label("KISS CAM", in: CGRect(x: 405, y: 80, width: 470, height: 95), size: 65)
+        label("♥", in: CGRect(x: 80, y: 150, width: 120, height: 110), size: 100, color: BATBrand.yellow)
+        label("♥", in: CGRect(x: 1080, y: 150, width: 120, height: 110), size: 100, color: BATBrand.yellow)
     }
 
     private func fill(_ rectangle: CGRect, _ color: UIColor, in cg: CGContext) {

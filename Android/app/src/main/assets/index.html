@@ -56,10 +56,13 @@ body.remoteMode #devices button{margin:0}
 .remotePage .clock{font-size:34px}
 .remotePage .overlay{gap:4px}
 @media(max-height:450px){body.cameraMode #cameraControls{padding:8px}#cameraControls .drawerTabs{margin:5px 0}#cameraControls .drawerPage p{margin:4px 0}}
+body.cameraMode.cameraClean #showCameraControls{top:12px;right:3vw;width:clamp(48px,6.25vw,80px);height:clamp(48px,6.25vw,80px);min-height:0;padding:0;border:0;border-radius:10px;background:transparent;box-shadow:none;opacity:1;touch-action:manipulation}
+body.cameraMode.cameraClean #showCameraControls:active{background:transparent}
+body.cameraMode.cameraClean:not(.cameraActive) #showCameraControls{background:url('logo.png') center / contain no-repeat;opacity:.82}
 </style>
 <body class="roleChooser"><header><img src="logo.png"><b>BAT <span>tv</span></b><div id="roleTitle"></div><div id="status">Scegli il tuo ruolo</div><button onclick="dispatch({type:'role',role:''})">Ruoli</button></header>
 <main>
-<button id="showCameraControls" class="hidden" onclick="toggleCameraControls(false)">Comandi</button>
+<button id="showCameraControls" class="hidden" aria-label="Apri comandi toccando il logo BAT tv" title="Apri comandi" onclick="toggleCameraControls(false)"></button>
 <div id="chooser" class="roles"><button class="role" onclick="choose('camera')"><strong>Camera</strong><small>Riprendi la partita e invia il video a Facebook.</small></button><button class="role" onclick="choose('regia')"><strong>Regia</strong><small>Gestisci diretta, grafiche e punteggi.</small></button><button class="role" onclick="choose('scores')"><strong>Punteggi</strong><small>Punti, falli, timeout e cronometro.</small></button></div>
 <div id="cameraPane" class="hidden"><div id="videoArea"><img src="logo.png"></div><aside id="cameraControls" class="panel">
  <div class="drawerHeader"><strong>BAT tv · Camera</strong><button onclick="toggleCameraControls(true)">Chiudi</button></div>

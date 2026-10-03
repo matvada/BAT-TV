@@ -94,15 +94,16 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   camera.startStream(serverUrl.replaceAll("/+$","")+"/"+streamKey.trim());status("Collegamento a Facebook…");}
  private void endLive(){if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;}
  private void drawOverlay()throws JSONException{
-  Bitmap b=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);c.drawBitmap(logo,null,new Rect(1162,26,1242,106),p);
+  Bitmap b=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
-  if(s.optBoolean("showScore")){p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(58,590,1222,674,14,14,p);label(c,p,h.optString("name"),86,641,24,Color.WHITE);label(c,p,""+h.optInt("score"),460,647,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,647,42,Color.WHITE);label(c,p,a.optString("name"),925,641,24,Color.WHITE);
-   int r=game.remaining();label(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),565,633,32,Color.rgb(255,254,15));label(c,p,"Q"+s.optInt("quarter"),612,662,18,Color.LTGRAY);}
+  if(s.optBoolean("showScore")){p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(58,520,1222,604,14,14,p);label(c,p,h.optString("name"),86,571,24,Color.WHITE);label(c,p,""+h.optInt("score"),460,577,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,577,42,Color.WHITE);label(c,p,a.optString("name"),925,571,24,Color.WHITE);
+   int r=game.remaining();label(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),565,563,32,Color.rgb(255,254,15));label(c,p,"Q"+s.optInt("quarter"),612,592,18,Color.LTGRAY);}
   String overlay=s.optString("overlay");if(s.optDouble("overlayUntil")>0&&System.currentTimeMillis()>s.optDouble("overlayUntil"))overlay="";
-  if(overlay.equals("kiss")){p.setColor(Color.rgb(255,254,15));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(14);c.drawRoundRect(30,35,1250,685,32,32,p);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(81,42,125));c.drawRoundRect(385,35,895,130,14,14,p);label(c,p,"KISS CAM",425,102,60,Color.WHITE);label(c,p,"♥",80,215,96,Color.rgb(255,254,15));label(c,p,"♥",1080,215,96,Color.rgb(255,254,15));}
+  if(overlay.equals("kiss")){p.setColor(Color.rgb(255,254,15));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(14);c.drawRoundRect(30,80,1250,640,32,32,p);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(81,42,125));c.drawRoundRect(385,80,895,175,14,14,p);label(c,p,"KISS CAM",425,147,60,Color.WHITE);label(c,p,"♥",80,260,96,Color.rgb(255,254,15));label(c,p,"♥",1080,260,96,Color.rgb(255,254,15));}
   else if(overlay.equals("triple")){p.setColor(Color.rgb(255,254,15));c.drawRoundRect(292,210,988,380,14,14,p);label(c,p,"TRIPLA!",430,326,88,Color.BLACK);}
   else if(overlay.equals("break")||overlay.equals("final")){p.setColor(Color.argb(225,81,42,125));c.drawRect(0,0,1280,720,p);label(c,p,overlay.equals("final")?"FINE PARTITA":"INTERVALLO",280,350,70,Color.WHITE);label(c,p,h.optString("name")+"  "+h.optInt("score")+" – "+a.optInt("score")+"  "+a.optString("name"),200,430,38,Color.rgb(255,254,15));}
-  else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,470,1222,560,14,14,p);label(c,p,s.optString("caption"),86,531,36,Color.WHITE);}
+  else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,400,1222,490,14,14,p);label(c,p,s.optString("caption"),86,461,36,Color.WHITE);}
+  p.setColor(Color.WHITE);c.drawBitmap(logo,null,new Rect(1162,82,1242,162),p);
   if(filter!=null)filter.setImage(b);
  }
  private void label(Canvas c,Paint p,String text,int x,int y,int size,int color){p.setTextSize(size);p.setColor(color);c.drawText(text,x,y,p);}
