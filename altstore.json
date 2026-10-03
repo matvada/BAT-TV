@@ -1,0 +1,25 @@
+{
+  "name": "BAT tv",
+  "identifier": "it.courtside.camera.source",
+  "sourceURL": "https://raw.githubusercontent.com/matvada/BAT-TV/main/altstore.json",
+  "apps": [
+    {
+      "name": "BAT tv",
+      "bundleIdentifier": "it.courtside.camera",
+      "developerName": "BAT tv",
+      "localizedDescription": "Diretta basket con Camera, Regia e Punteggi via Bluetooth.",
+      "iconURL": "https://raw.githubusercontent.com/matvada/BAT-TV/main/iPhone/COURTSIDE/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
+      "tintColor": "#512A7D",
+      "versions": [
+        {
+          "version": "1.0",
+          "buildVersion": "2",
+          "date": "2026-10-03T13:50:38Z",
+          "downloadURL": "https://github.com/matvada/BAT-TV/releases/download/ios-build-2/BAT-tv-SideStore.ipa",
+          "size": 4345489,
+          "minOSVersion": "17.0"
+        }
+      ]
+    }
+  ]
+}
