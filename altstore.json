@@ -12,10 +12,10 @@
       "tintColor": "#512A7D",
       "versions": [
         {
-          "version": "1.0.11",
-          "date": "2026-10-03T15:44:01Z",
-          "downloadURL": "https://github.com/matvada/BAT-TV/releases/download/ios-build-11/BAT-tv-SideStore.ipa",
-          "size": 4352964,
+          "version": "1.0.12",
+          "date": "2026-10-03T16:53:57Z",
+          "downloadURL": "https://github.com/matvada/BAT-TV/releases/download/ios-build-12/BAT-tv-SideStore.ipa",
+          "size": 4373173,
           "minOSVersion": "17.0"
         }
       ]
