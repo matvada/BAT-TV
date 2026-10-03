@@ -9,7 +9,11 @@ on:
       - '.github/workflows/ios-ipa.yml'
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: bat-tv-ipa-publish
+  cancel-in-progress: false
 
 jobs:
   ipa:
@@ -17,6 +21,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Imposta numero build
+        run: plutil -replace CFBundleVersion -string "$GITHUB_RUN_NUMBER" 'iPhone/COURTSIDE/Info.plist'
       - name: Compila per iPhone senza firma
         run: |
           xcodebuild -project 'iPhone/BAT-tv.xcodeproj' \
@@ -37,3 +43,32 @@ jobs:
           name: BAT-tv-SideStore
           path: BAT-tv-SideStore.ipa
           if-no-files-found: error
+      - name: Pubblica IPA come Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="ios-build-${GITHUB_RUN_NUMBER}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" BAT-tv-SideStore.ipa --clobber
+          else
+            gh release create "$TAG" BAT-tv-SideStore.ipa \
+              --target "$GITHUB_SHA" \
+              --title "BAT tv iPhone · build ${GITHUB_RUN_NUMBER}" \
+              --notes "IPA non firmato per SideStore. Versione di prova."
+          fi
+          curl -fsSL --retry 3 --retry-delay 2 \
+            "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/BAT-tv-SideStore.ipa" \
+            -o "$RUNNER_TEMP/verify-release.ipa"
+          cmp BAT-tv-SideStore.ipa "$RUNNER_TEMP/verify-release.ipa"
+      - name: Aggiorna la sorgente SideStore
+        run: |
+          git restore 'iPhone/COURTSIDE/Info.plist'
+          git pull --rebase origin main
+          python3 scripts/update_altsource.py BAT-tv-SideStore.ipa "$GITHUB_RUN_NUMBER"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add altstore.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Aggiorna sorgente SideStore alla build ${GITHUB_RUN_NUMBER} [skip ci]"
+            git push origin HEAD:main
+          fi

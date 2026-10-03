@@ -10,11 +10,11 @@ L’APK `BAT-tv-Android.apk` è compilato e firmato per la prova diretta su **An
 
 ## Installare iPhone
 
-Apri `iPhone/BAT-tv.xcodeproj` con Xcode 26 o successivo. Seleziona il tuo Team in Signing & Capabilities e l’iPhone collegato, poi premi Run. HaishinKit 2.2.5 rimane il motore video. L’aggiornamento Bluetooth/ibrido è stato preparato su Linux: **questa nuova versione iPhone non è stata compilata qui**. La precedente versione Camera era stata compilata sul Mac dell’utente.
+In SideStore aggiungi come sorgente `https://raw.githubusercontent.com/matvada/BAT-TV/main/altstore.json`, poi scegli **BAT tv** e premi Installa. La sorgente contiene la build iPhone più recente e SideStore mostra gli aggiornamenti successivi. Come alternativa, apri `iPhone/BAT-tv.xcodeproj` con Xcode 26 o successivo, seleziona il tuo Team e l’iPhone collegato, poi premi Run. HaishinKit 2.2.5 rimane il motore video. La prima versione iPhone ibrida è stata compilata da GitHub Actions, ma non ancora provata su dispositivi reali.
 
 ### IPA automatico senza Mac locale
 
-Apri la scheda **Actions** della repository GitHub, seleziona **IPA iPhone per SideStore**, premi **Run workflow**. La stessa compilazione parte quando viene modificata la cartella `iPhone` su `main`. Al termine apri la run e scarica l'artifact **BAT-tv-SideStore**; nello ZIP trovi `BAT-tv-SideStore.ipa`. Aprilo su iPhone con SideStore, già configurato con il tuo account Apple. La pipeline usa un Mac GitHub e Xcode 26, costruisce per dispositivo iOS senza certificati Apple e consegna un IPA non firmato: **SideStore provvede alla firma e all'installazione**. Il primo avvio della pipeline verificherà davvero la compilazione iPhone di questa versione.
+La compilazione parte dopo modifiche nella cartella `iPhone` su `main` o manualmente dalla scheda **Actions** scegliendo **IPA iPhone per SideStore** e **Run workflow**. La pipeline costruisce su un Mac GitHub con Xcode 26, pubblica l'IPA non firmato nelle **Releases** e aggiorna `altstore.json` con il numero di build e il link corrispondente. La sorgente viene aggiornata soltanto dopo che il download pubblico dell'IPA è stato verificato. SideStore firma e installa sul dispositivo con il tuo account Apple.
 
 ## Prima prova, senza Wi-Fi e senza account
 
@@ -34,7 +34,7 @@ Su Android 8–11 la scansione BLE può richiedere il permesso Posizione e il se
 - **APK Android compilato con successo** e firma APK verificata.
 - Logica Java della partita verificata: incrementi, limiti, comandi duplicati, cronometro, pausa, annullamento, overlay a tempo e formato dei messaggi.
 - Interfaccia comune: verifiche dei ruoli e dei comandi della regia.
-- Progetto iPhone: controllati plist, riferimenti a risorse e protocollo, ma manca la compilazione Xcode della nuova versione.
+- Progetto iPhone: compilato su GitHub Actions con Xcode 26; non ancora installato e provato su dispositivi reali.
 - **Non eseguiti su dispositivi reali:** abbinamento Android↔iPhone, negoziazione della cifratura Bluetooth, acquisizione e orientamento Android, composizione OpenGL degli overlay Android e trasmissione RTMPS da questa nuova versione.
 - Nessuna anteprima video sul controller: BLE trasferisce i comandi e lo stato della partita. La ripresa è visibile sulla Camera.
 - La perdita di Bluetooth non cancella la partita o arresta volontariamente l’invio video. Per ripristinare la regia usa Cerca, seleziona la Camera e abbina di nuovo; verifica lo stato prima di ripetere un comando non confermato.
