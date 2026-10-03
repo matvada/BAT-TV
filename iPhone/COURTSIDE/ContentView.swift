@@ -40,6 +40,7 @@ struct BATHybridView: UIViewRepresentable {
         configuration.userContentController.add(context.coordinator, name: "native")
         let web = WKWebView(frame: .zero, configuration: configuration)
         web.isOpaque = false; web.backgroundColor = .clear; web.scrollView.backgroundColor = .clear
+        web.scrollView.bounces = false
         web.uiDelegate = context.coordinator; web.navigationDelegate = context.coordinator
         context.coordinator.attach(web)
         if let root = Bundle.main.url(forResource: "BATWeb", withExtension: nil) {
@@ -79,6 +80,7 @@ struct BATHybridView: UIViewRepresentable {
                 guard ["", "camera", "regia", "scores"].contains(selected) else { return }
                 Task { @MainActor in
                     await camera.stopCamera(); camera.bridge.stop(); role = selected
+                    web?.scrollView.isScrollEnabled = selected != "camera"
                     emit(["type": "role", "role": selected, "pin": camera.bridge.pin])
                     if selected == "camera" { camera.bridge.start() }
                     else if !selected.isEmpty { camera.bridge.startController() }

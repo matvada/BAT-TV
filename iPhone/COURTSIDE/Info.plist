@@ -8,6 +8,8 @@
 	<string>BAT tv trasmette l’audio della partita.</string>
 	<key>UIRequiresFullScreen</key>
 	<true/>
+	<key>UILaunchScreen</key>
+	<dict/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationLandscapeLeft</string>

@@ -23,7 +23,7 @@ La compilazione parte dopo modifiche all'app su `main` o manualmente dalla sched
 3. Sul secondo dispositivo scegli **Regia** oppure **Punteggi**. Premi Cerca via Bluetooth e seleziona la Camera.
 4. Conferma gli eventuali avvisi di sistema per i dispositivi nelle vicinanze e l’abbinamento Bluetooth. Inserisci nell’app il codice a sei cifre mostrato dalla Camera e premi Abbina. I punteggi appaiono dopo la conferma della Camera.
 5. Prova +2 e Pausa/Avvia. In Regia prova Kiss Cam. Il cambio di stato viene applicato sulla Camera e restituito al controller.
-6. Attiva la Camera, consenti camera e microfono e verifica gli overlay nell’anteprima **del dispositivo Camera**. Premi **Nascondi codice e comandi** per vedere il video a tutto schermo; **Mostra comandi** riapre il pannello Bluetooth e le impostazioni della diretta.
+6. Attiva la Camera, consenti camera e microfono e verifica gli overlay nell’anteprima **del dispositivo Camera**. Il video occupa la finestra intera; **Nascondi comandi** chiude il pannello sovrapposto, **Mostra comandi** lo riapre. Il codice Bluetooth e le impostazioni della diretta restano nel pannello.
 7. Sulla Camera inserisci indirizzo RTMPS e chiave ottenuti da Facebook Live Producer. Internet (anche 4G/5G) serve alla sola Camera. Premi Invia e controlla la ricezione in Facebook prima di pubblicare la diretta.
 8. Ferma l’invio prima di cambiare ruolo o chiudere l’app.
 
