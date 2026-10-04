@@ -99,16 +99,19 @@ private struct BATLaunchSplash: View {
         GeometryReader { geometry in
             ZStack {
                 Color(red: 35/255, green: 10/255, blue: 61/255)
-                Image("BATLogo")
+                Image("BATLaunchBanner")
                     .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: min(geometry.size.width * 0.9, geometry.size.height * 1.18),
-                           maxHeight: geometry.size.height * 0.94)
+                    .scaledToFill()
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped()
                     .accessibilityHidden(true)
                 Text("BUILD \(build)")
                     .font(.system(size: 11, weight: .semibold, design: .rounded))
                     .tracking(1.5)
                     .foregroundStyle(Color(red: 1, green: 254/255, blue: 15/255))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .background(.black.opacity(0.55), in: Capsule())
                     .padding(.bottom, max(geometry.safeAreaInsets.bottom, 10))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }

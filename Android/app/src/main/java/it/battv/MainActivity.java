@@ -39,17 +39,17 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  }
  private void showSplash(FrameLayout root){
   FrameLayout splash=new FrameLayout(this);splash.setBackgroundColor(Color.rgb(35,10,61));
-  ImageView banner=new ImageView(this);banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
-  try(java.io.InputStream input=getAssets().open("logo.png")){banner.setImageBitmap(BitmapFactory.decodeStream(input));}
+  ImageView banner=new ImageView(this);banner.setScaleType(ImageView.ScaleType.CENTER_CROP);
+  try(java.io.InputStream input=getAssets().open("launch_banner.jpg")){banner.setImageBitmap(BitmapFactory.decodeStream(input));}
   catch(java.io.IOException e){android.util.Log.w("BAT tv","Banner non disponibile",e);}
   int margin=(int)(10*getResources().getDisplayMetrics().density);
-  FrameLayout.LayoutParams art=new FrameLayout.LayoutParams(-1,-1);art.setMargins(margin,margin,margin,margin);
-  splash.addView(banner,art);
+  splash.addView(banner,new FrameLayout.LayoutParams(-1,-1));
   String buildNumber="";
   try{buildNumber=String.valueOf(getPackageManager().getPackageInfo(getPackageName(),0).versionCode);}
   catch(PackageManager.NameNotFoundException ignored){}
   TextView build=new TextView(this);build.setText("BUILD "+buildNumber);
   build.setTextColor(Color.rgb(255,254,15));build.setTextSize(11);build.setLetterSpacing(0.14f);build.setGravity(Gravity.CENTER);
+  build.setBackgroundColor(Color.argb(165,0,0,0));
   FrameLayout.LayoutParams label=new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);
   label.bottomMargin=margin;splash.addView(build,label);
   root.addView(splash,new FrameLayout.LayoutParams(-1,-1));
