@@ -36,13 +36,14 @@ final class ScoreboardRenderer {
     }
 
     private func drawChannel(in cg: CGContext) {
-        UIImage(named: "BATLogo")?.draw(in: CGRect(x: 1162, y: 82, width: 80, height: 80))
+        let rect = CGRect(x: 1162, y: 82, width: 80, height: 80)
+        cg.saveGState()
+        UIBezierPath(roundedRect: rect, cornerRadius: 16).addClip()
+        UIImage(named: "BATLogo")?.draw(in: rect)
+        cg.restoreGState()
     }
 
     private func drawScore(_ game: Game, at now: Double, in cg: CGContext) {
-        cg.saveGState()
-        cg.translateBy(x: 0, y: -70)
-        defer { cg.restoreGState() }
         fill(CGRect(x: 58, y: 590, width: 1164, height: 84), BATBrand.purple.withAlphaComponent(0.96), in: cg)
         fill(CGRect(x: 58, y: 590, width: 7, height: 84), color(game.home.color), in: cg)
         fill(CGRect(x: 1215, y: 590, width: 7, height: 84), color(game.away.color), in: cg)

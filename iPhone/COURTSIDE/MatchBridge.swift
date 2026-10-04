@@ -42,7 +42,9 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
 
     override init() {
         let now = Date().timeIntervalSince1970 * 1000
-        if let data = UserDefaults.standard.data(forKey: "batLocalGame"), var saved = try? JSONDecoder().decode(Game.self, from: data) {
+        if UserDefaults.standard.bool(forKey: "batMatchInProgress"),
+           let data = UserDefaults.standard.data(forKey: "batLocalGame"),
+           var saved = try? JSONDecoder().decode(Game.self, from: data) {
             saved.clock = Double(saved.remaining(at: now)); saved.running = false; saved.live = false
             saved.overlay = ""; saved.overlayUntil = 0
             game = saved
@@ -86,6 +88,20 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
     func setCameraStatus(ready: Bool, publishing: Bool) {
         cameraReady = ready; self.publishing = publishing
         game.live = publishing
+        if publishing {
+            UserDefaults.standard.set(true, forKey: "batMatchInProgress")
+            save()
+        }
+        sendState()
+    }
+
+    func finishMatch() {
+        game = .fresh(now: now())
+        history.removeAll()
+        seen.removeAll()
+        revision += 1
+        UserDefaults.standard.set(false, forKey: "batMatchInProgress")
+        UserDefaults.standard.removeObject(forKey: "batLocalGame")
         sendState()
     }
 

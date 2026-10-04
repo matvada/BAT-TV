@@ -22,7 +22,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private boolean authenticated=false,ready=false,live=false;private int failedPins=0;private long lockUntil=0;
  private final Handler main=new Handler(Looper.getMainLooper());private final HashMap<String,Runnable> pending=new HashMap<>();
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-  game=new GameStore();String saved=getPreferences(0).getString("game",null);if(saved!=null)try{game.state=new JSONObject(saved);game.state.put("clock",game.remaining()).put("running",false).put("live",false).put("overlay","").put("overlayUntil",0);}catch(JSONException ignored){}
+  game=new GameStore();String saved=getPreferences(0).getString("game",null);if(getPreferences(0).getBoolean("matchInProgress",false)&&saved!=null)try{game.state=new JSONObject(saved);game.state.put("clock",game.remaining()).put("running",false).put("live",false).put("overlay","").put("overlayUntil",0);}catch(JSONException ignored){}
   serverUrl=getPreferences(0).getString("server","");
   FrameLayout frame=new FrameLayout(this);preview=new OpenGlView(this);frame.addView(preview,new FrameLayout.LayoutParams(-1,-1));
   web=new WebView(this);web.setBackgroundColor(Color.TRANSPARENT);web.getSettings().setJavaScriptEnabled(true);web.getSettings().setAllowFileAccess(true);web.getSettings().setAllowFileAccessFromFileURLs(false);web.getSettings().setAllowUniversalAccessFromFileURLs(false);
@@ -112,21 +112,22 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void beginLive(){if(!role.equals("camera")||!ready||camera==null){status("Attiva prima la Camera");return;}if(live||camera.isStreaming())return;
   if(!serverUrl.startsWith("rtmps://")||streamKey.trim().isEmpty()){status("Imposta indirizzo RTMPS e chiave Facebook sulla Camera");return;}
   camera.startStream(serverUrl.replaceAll("/+$","")+"/"+streamKey.trim());status("Collegamento a Facebook…");}
- private void endLive(){if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;}
+ private void endLive(){boolean finished=live;if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;if(finished){game=new GameStore();getPreferences(0).edit().putBoolean("matchInProgress",false).remove("game").apply();try{emit(game.envelope(ready,false));}catch(JSONException ignored){}}}
+ private void abortLive(){if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;}
  private void drawOverlay()throws JSONException{
   Bitmap b=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
-  if(s.optBoolean("showScore")){p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(58,520,1222,604,14,14,p);label(c,p,h.optString("name"),86,571,24,Color.WHITE);label(c,p,""+h.optInt("score"),460,577,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,577,42,Color.WHITE);label(c,p,a.optString("name"),925,571,24,Color.WHITE);
+  if(s.optBoolean("showScore")){c.save();c.translate(0,70);p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(58,520,1222,604,14,14,p);label(c,p,h.optString("name"),86,571,24,Color.WHITE);label(c,p,""+h.optInt("score"),460,577,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,577,42,Color.WHITE);label(c,p,a.optString("name"),925,571,24,Color.WHITE);
    String quarter=s.optInt("quarter")<=4?"Q"+s.optInt("quarter"):"OT"+(s.optInt("quarter")-4);
    if(s.optBoolean("clockEnabled",true)){int r=game.remaining();label(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),565,563,32,Color.rgb(255,254,15));label(c,p,quarter,612,592,18,Color.LTGRAY);}
-   else{p.setTextAlign(Paint.Align.CENTER);label(c,p,quarter,640,584,58,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}}
+   else{p.setTextAlign(Paint.Align.CENTER);label(c,p,quarter,640,584,58,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}c.restore();}
   String overlay=s.optString("overlay");if(s.optDouble("overlayUntil")>0&&System.currentTimeMillis()>s.optDouble("overlayUntil"))overlay="";
   if(overlay.equals("kiss")){p.setColor(Color.rgb(81,42,125));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(28);c.drawRoundRect(30,80,1250,640,32,32,p);p.setColor(Color.rgb(255,254,15));p.setStrokeWidth(12);c.drawRoundRect(30,80,1250,640,32,32,p);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(81,42,125));c.drawRoundRect(350,80,930,180,16,16,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,"♥  KISS CAM  ♥",640,151,58,Color.WHITE);label(c,p,"♥",145,244,92,Color.rgb(255,254,15));label(c,p,"♥",1135,244,92,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
   else if(overlay.equals("triple"))drawTriple(c,p,System.currentTimeMillis());
   else if(overlay.equals("cheer"))drawCheer(c,p,System.currentTimeMillis(),s.optDouble("overlayUntil"));
   else if(overlay.equals("break")||overlay.equals("final")){p.setColor(Color.argb(230,81,42,125));c.drawRect(0,0,1280,720,p);p.setColor(Color.argb(85,0,0,0));c.drawRoundRect(170,205,1110,465,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(170,205,180,465,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,overlay.equals("final")?"FINE PARTITA":"INTERVALLO",640,327,76,Color.WHITE);label(c,p,h.optString("name")+"  "+h.optInt("score")+" – "+a.optInt("score")+"  "+a.optString("name"),640,409,38,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
   else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,400,1222,490,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(58,400,67,490,p);label(c,p,s.optString("caption"),86,461,36,Color.WHITE);}
-  p.setColor(Color.WHITE);c.drawBitmap(logo,null,new Rect(1162,82,1242,162),p);
+  p.setColor(Color.WHITE);c.save();Path logoClip=new Path();logoClip.addRoundRect(1162,82,1242,162,16,16,Path.Direction.CW);c.clipPath(logoClip);c.drawBitmap(logo,null,new Rect(1162,82,1242,162),p);c.restore();
   if(filter!=null)filter.setImage(b);
  }
  private void drawTriple(Canvas c,Paint p,long now){
@@ -171,10 +172,10 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   }catch(Exception e){status("Operazione: "+e.getMessage());}});}
  }
  @Override public void onConnectionStarted(String url){main.post(()->status("Connessione video in corso…"));}
- @Override public void onConnectionSuccess(){main.post(()->{live=true;status("Invio video attivo · controlla Facebook Live Producer");});}
- @Override public void onConnectionFailed(String reason){main.post(()->{endLive();status("Invio video non riuscito: "+reason);});}
+ @Override public void onConnectionSuccess(){main.post(()->{live=true;getPreferences(0).edit().putBoolean("matchInProgress",true).putString("game",game.state.toString()).apply();status("Invio video attivo · controlla Facebook Live Producer");});}
+ @Override public void onConnectionFailed(String reason){main.post(()->{abortLive();status("Invio video non riuscito: "+reason);});}
  @Override public void onDisconnect(){main.post(()->{live=false;status("Invio video fermato");});}
- @Override public void onAuthError(){main.post(()->{endLive();status("Chiave Facebook non accettata");});}
+ @Override public void onAuthError(){main.post(()->{abortLive();status("Chiave Facebook non accettata");});}
  @Override public void onAuthSuccess(){}
  @Override public void onBackPressed(){if(live){new AlertDialog.Builder(this).setMessage("Ferma l’invio video prima di cambiare ruolo.").setPositiveButton("OK",null).show();}else setRole("");}
  @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);stopCamera();link.close();web.destroy();super.onDestroy();}

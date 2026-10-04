@@ -243,12 +243,14 @@ final class CameraEngine: ObservableObject {
 
     func endLive() async {
         guard publishing || connecting else { return }
+        let finishedMatch = publishing
         streamGeneration += 1
         connecting = false
         try? await stream.close()
         try? await connection.close()
         publishing = false
         bridge.setCameraStatus(ready: cameraReady, publishing: false)
+        if finishedMatch { bridge.finishMatch() }
         message = "Invio video fermato"
     }
 
