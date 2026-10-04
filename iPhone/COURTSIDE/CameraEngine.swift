@@ -40,7 +40,8 @@ final class CameraEngine: ObservableObject {
     let preview = MTHKView(frame: .zero)
 
     private let mixer = MediaMixer()
-    private let connection = RTMPConnection()
+    // Facebook can take longer than HaishinKit's 3-second default to acknowledge publish.
+    private let connection = RTMPConnection(requestTimeout: 15_000)
     private lazy var stream = RTMPStream(connection: connection)
     private let renderer = ScoreboardRenderer()
     private var subscriptions = Set<AnyCancellable>()

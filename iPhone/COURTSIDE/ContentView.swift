@@ -286,13 +286,9 @@ struct FacebookProducerView: View {
 struct FacebookProducerBrowser: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
     func makeUIView(context: Context) -> WKWebView {
-        let config = WKWebViewConfiguration()
-        config.websiteDataStore = .default()
-        let web = WKWebView(frame: .zero, configuration: config)
-        web.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
-        web.allowsBackForwardNavigationGestures = true
+        let web = FacebookProducerSession.web
+        web.removeFromSuperview()
         web.uiDelegate = context.coordinator
-        web.load(URLRequest(url: URL(string: "https://www.facebook.com/live/producer")!))
         return web
     }
     func updateUIView(_ web: WKWebView, context: Context) {}
@@ -306,6 +302,21 @@ struct FacebookProducerBrowser: UIViewRepresentable {
             return nil
         }
     }
+}
+
+@MainActor
+private enum FacebookProducerSession {
+    // Keep the actual Live Producer form alive when the control panel is closed.
+    // A new WKWebView loaded at /live/producer starts a new draft on the profile.
+    static let web: WKWebView = {
+        let config = WKWebViewConfiguration()
+        config.websiteDataStore = .default()
+        let web = WKWebView(frame: .zero, configuration: config)
+        web.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+        web.allowsBackForwardNavigationGestures = true
+        web.load(URLRequest(url: URL(string: "https://www.facebook.com/live/producer")!))
+        return web
+    }()
 }
 
 @main
