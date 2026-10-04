@@ -43,6 +43,7 @@ final class BATOrientation: NSObject, UIApplicationDelegate {
 struct ContentView: View {
     @StateObject private var camera = CameraEngine()
     @State private var showFacebookProducer = false
+    @State private var showSplash = true
     @State private var cameraOrientation: UIInterfaceOrientationMask = .landscapeRight
     var body: some View {
         ZStack {
@@ -56,6 +57,15 @@ struct ContentView: View {
                 showFacebookProducer = true
                 BATOrientation.showProducer()
             }).ignoresSafeArea()
+            if showSplash {
+                BATLaunchSplash()
+                    .transition(.opacity)
+                    .zIndex(1)
+            }
+        }
+        .task {
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation(.easeOut(duration: 0.25)) { showSplash = false }
         }
         .fullScreenCover(isPresented: $showFacebookProducer, onDismiss: {
             camera.setProducerVisible(false)
@@ -77,6 +87,35 @@ struct ContentView: View {
             UIApplication.shared.isIdleTimerDisabled = false
             UIDevice.current.endGeneratingDeviceOrientationNotifications()
         }
+    }
+}
+
+private struct BATLaunchSplash: View {
+    private var build: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "–"
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                Color(red: 35/255, green: 10/255, blue: 61/255)
+                Image("BATLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: min(geometry.size.width * 0.9, geometry.size.height * 1.18),
+                           maxHeight: geometry.size.height * 0.94)
+                    .accessibilityHidden(true)
+                Text("BUILD \(build)")
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .tracking(1.5)
+                    .foregroundStyle(Color(red: 1, green: 254/255, blue: 15/255))
+                    .padding(.bottom, max(geometry.safeAreaInsets.bottom, 10))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+        .ignoresSafeArea()
+        .accessibilityLabel("BAT tv, build \(build)")
     }
 }
 

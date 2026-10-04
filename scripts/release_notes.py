@@ -48,7 +48,7 @@ def current_notes(number: int) -> str:
     return (f"## Modifiche · 1.0.{number}\n\n"
             + "\n".join(f"- {subject}." for subject in subjects)
             + "\n\n## File\n\n"
-            + f"- `BAT-tv-1.0.{number}-iPhone-SideStore.ipa` — iPhone, installazione con SideStore.\n"
+            + f"- `BAT-tv-1.0.{number}-iPhone.ipa` — iPhone, installazione con SideStore.\n"
             + f"- `BAT-tv-1.0.{number}-Android.apk` — Android, versione di prova.\n")
 
 

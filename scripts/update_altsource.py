@@ -25,7 +25,7 @@ bundle_id = info["CFBundleIdentifier"]
 if (str(build) != run_number or str(version) != f"1.0.{run_number}"
         or bundle_id != "it.courtside.camera"):
     raise SystemExit("IPA version or bundle ID differs from expected build")
-if ipa.name != f"BAT-tv-{version}-iPhone-SideStore.ipa":
+if ipa.name != f"BAT-tv-{version}-iPhone.ipa":
     raise SystemExit("IPA filename differs from expected version")
 
 source = {

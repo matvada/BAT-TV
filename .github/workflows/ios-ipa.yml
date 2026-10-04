@@ -35,9 +35,9 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/BATDerivedData" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             build
-      - name: Prepara IPA per SideStore
+      - name: Prepara IPA iPhone
         run: |
-          IPA="BAT-tv-1.0.${GITHUB_RUN_NUMBER}-iPhone-SideStore.ipa"
+          IPA="BAT-tv-1.0.${GITHUB_RUN_NUMBER}-iPhone.ipa"
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$RUNNER_TEMP/BATDerivedData/Build/Products/Release-iphoneos/BAT tv.app" "$RUNNER_TEMP/ipa/Payload/"
           cd "$RUNNER_TEMP/ipa"
@@ -46,7 +46,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: BAT-tv-iPhone
-          path: BAT-tv-1.0.*-iPhone-SideStore.ipa
+          path: BAT-tv-1.0.*-iPhone.ipa
           if-no-files-found: error
   android:
     runs-on: ubuntu-latest
@@ -91,7 +91,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="ios-build-${GITHUB_RUN_NUMBER}"
-          IPA="BAT-tv-1.0.${GITHUB_RUN_NUMBER}-iPhone-SideStore.ipa"
+          IPA="BAT-tv-1.0.${GITHUB_RUN_NUMBER}-iPhone.ipa"
           APK="BAT-tv-1.0.${GITHUB_RUN_NUMBER}-Android.apk"
           python3 scripts/release_notes.py current "$GITHUB_RUN_NUMBER" > "$RUNNER_TEMP/release-notes.md"
           if gh release view "$TAG" >/dev/null 2>&1; then
@@ -124,7 +124,7 @@ jobs:
       - name: Aggiorna la sorgente SideStore
         run: |
           git pull --rebase origin main
-          python3 scripts/update_altsource.py "BAT-tv-1.0.${GITHUB_RUN_NUMBER}-iPhone-SideStore.ipa" "$GITHUB_RUN_NUMBER"
+          python3 scripts/update_altsource.py "BAT-tv-1.0.${GITHUB_RUN_NUMBER}-iPhone.ipa" "$GITHUB_RUN_NUMBER"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add altstore.json
