@@ -15,6 +15,7 @@ final class ScoreboardRenderer {
             switch game.visibleOverlay(at: serverNow) {
             case "kiss": drawKiss(in: cg)
             case "triple": drawTriple(in: cg, at: serverNow)
+            case "cheer": drawCheer(in: cg, at: serverNow, until: game.overlayUntil)
             case "break", "final":
                 fill(CGRect(origin: .zero, size: size), BATBrand.purple.withAlphaComponent(0.9), in: cg)
                 fill(CGRect(x: 170, y: 205, width: 940, height: 260), UIColor.black.withAlphaComponent(0.27), in: cg)
@@ -98,6 +99,37 @@ final class ScoreboardRenderer {
         label("+3", in: CGRect(x: 305, y: 232, width: 186, height: 174), size: 137, color: .black)
         label("TRIPLA!", in: CGRect(x: 520, y: 239, width: 456, height: 112), size: 88)
         label("BOMBA DA TRE", in: CGRect(x: 533, y: 353, width: 430, height: 55), size: 36, color: BATBrand.yellow)
+    }
+
+    private func drawCheer(in cg: CGContext, at now: Double, until: Double) {
+        let enter = min(1, max(0, (now - (until - 8000)) / 650))
+        let exit = min(1, max(0, (until - now) / 500))
+        let slide = CGFloat(-1150 * (1 - enter) + 1150 * (1 - exit))
+        cg.saveGState()
+        defer { cg.restoreGState() }
+        cg.translateBy(x: slide, y: 0)
+        fill(CGRect(x: 105, y: 232, width: 1070, height: 178), BATBrand.purple.withAlphaComponent(0.94), in: cg)
+        fill(CGRect(x: 105, y: 232, width: 1070, height: 8), BATBrand.yellow, in: cg)
+        fill(CGRect(x: 105, y: 402, width: 1070, height: 8), BATBrand.yellow, in: cg)
+        cg.saveGState()
+        cg.clip(to: CGRect(x: 105, y: 240, width: 1070, height: 162))
+        let shift = CGFloat(now.truncatingRemainder(dividingBy: 2400) / 2400 * 160)
+        cg.setFillColor(BATBrand.yellow.withAlphaComponent(0.42).cgColor)
+        for x in stride(from: -190, through: 1390, by: 160) {
+            let left = CGFloat(x) + shift
+            let slash = UIBezierPath()
+            slash.move(to: CGPoint(x: left, y: 402))
+            slash.addLine(to: CGPoint(x: left + 34, y: 402))
+            slash.addLine(to: CGPoint(x: left + 132, y: 240))
+            slash.addLine(to: CGPoint(x: left + 98, y: 240))
+            slash.close()
+            cg.addPath(slash.cgPath)
+            cg.fillPath()
+        }
+        cg.restoreGState()
+        fill(CGRect(x: 337, y: 247, width: 606, height: 148), BATBrand.purple.withAlphaComponent(0.96), in: cg)
+        label("FORZA BAT!", in: CGRect(x: 345, y: 250, width: 590, height: 109), size: 88, color: BATBrand.yellow)
+        label("TUTTI INSIEME", in: CGRect(x: 405, y: 353, width: 470, height: 36), size: 26)
     }
 
     private func fill(_ rectangle: CGRect, _ color: UIColor, in cg: CGContext) {

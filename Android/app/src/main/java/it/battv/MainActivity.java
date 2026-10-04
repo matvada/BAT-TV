@@ -122,6 +122,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   String overlay=s.optString("overlay");if(s.optDouble("overlayUntil")>0&&System.currentTimeMillis()>s.optDouble("overlayUntil"))overlay="";
   if(overlay.equals("kiss")){p.setColor(Color.rgb(81,42,125));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(28);c.drawRoundRect(30,80,1250,640,32,32,p);p.setColor(Color.rgb(255,254,15));p.setStrokeWidth(12);c.drawRoundRect(30,80,1250,640,32,32,p);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(81,42,125));c.drawRoundRect(350,80,930,180,16,16,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,"♥  KISS CAM  ♥",640,151,58,Color.WHITE);label(c,p,"♥",145,244,92,Color.rgb(255,254,15));label(c,p,"♥",1135,244,92,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
   else if(overlay.equals("triple"))drawTriple(c,p,System.currentTimeMillis());
+  else if(overlay.equals("cheer"))drawCheer(c,p,System.currentTimeMillis(),s.optDouble("overlayUntil"));
   else if(overlay.equals("break")||overlay.equals("final")){p.setColor(Color.argb(230,81,42,125));c.drawRect(0,0,1280,720,p);p.setColor(Color.argb(85,0,0,0));c.drawRoundRect(170,205,1110,465,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(170,205,180,465,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,overlay.equals("final")?"FINE PARTITA":"INTERVALLO",640,327,76,Color.WHITE);label(c,p,h.optString("name")+"  "+h.optInt("score")+" – "+a.optInt("score")+"  "+a.optString("name"),640,409,38,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
   else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,400,1222,490,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(58,400,67,490,p);label(c,p,s.optString("caption"),86,461,36,Color.WHITE);}
   p.setColor(Color.WHITE);c.drawBitmap(logo,null,new Rect(1162,82,1242,162),p);
@@ -138,6 +139,20 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   p.setTextAlign(Paint.Align.CENTER);label(c,p,"+3",398,379,137,Color.BLACK);
   label(c,p,"TRIPLA!",747,332,88,Color.WHITE);label(c,p,"BOMBA DA TRE",747,393,36,Color.rgb(255,254,15));
   p.setTextAlign(Paint.Align.LEFT);c.restore();
+ }
+ private void drawCheer(Canvas c,Paint p,long now,double until){
+  double enter=Math.min(1,Math.max(0,(now-(until-8000))/650));
+  double exit=Math.min(1,Math.max(0,(until-now)/500));
+  float slide=(float)(-1150*(1-enter)+1150*(1-exit));
+  c.save();c.translate(slide,0);p.setStyle(Paint.Style.FILL);
+  p.setColor(Color.argb(240,81,42,125));c.drawRoundRect(105,232,1175,410,14,14,p);
+  p.setColor(Color.rgb(255,254,15));c.drawRect(105,232,1175,240,p);c.drawRect(105,402,1175,410,p);
+  c.save();c.clipRect(105,240,1175,402);p.setColor(Color.argb(107,255,254,15));
+  float shift=(now%2400)/2400f*160;
+  for(int x=-190;x<=1390;x+=160){float left=x+shift;Path slash=new Path();slash.moveTo(left,402);slash.lineTo(left+34,402);slash.lineTo(left+132,240);slash.lineTo(left+98,240);slash.close();c.drawPath(slash,p);}
+  c.restore();p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(337,247,943,395,14,14,p);
+  p.setTextAlign(Paint.Align.CENTER);label(c,p,"FORZA BAT!",640,340,88,Color.rgb(255,254,15));
+  label(c,p,"TUTTI INSIEME",640,380,26,Color.WHITE);p.setTextAlign(Paint.Align.LEFT);c.restore();
  }
  private void label(Canvas c,Paint p,String text,int x,int y,int size,int color){p.setTextSize(size);p.setColor(color);c.drawText(text,x,y,p);}
  public final class Bridge {

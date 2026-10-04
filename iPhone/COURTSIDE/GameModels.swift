@@ -132,7 +132,7 @@ extension Game {
             guard let value, (1...12).contains(value) else { return false }
             quarter = value
         case "overlay":
-            guard let text, ["", "kiss", "triple", "break", "final", "caption"].contains(text) else { return false }
+            guard let text, ["", "kiss", "triple", "cheer", "break", "final", "caption"].contains(text) else { return false }
             overlay = text; overlayUntil = (value ?? 0) > 0 ? now + Double(min(value ?? 0, 300)) * 1000 : 0
         case "caption": caption = String((text ?? "").prefix(100)); overlay = "caption"; overlayUntil = 0
         case "showScore": showScore = value != 0

@@ -30,7 +30,7 @@ public final class GameStore {
    case "clockSet":if(v<0||v>3600)return false;next.put("clock",v).put("running",false).put("startedAt",now);break;
    case "clockEnabled":if(v!=0&&v!=1)return false;next.put("clock",remaining()).put("running",false).put("startedAt",now).put("clockEnabled",v==1);break;
    case "quarter":if(v<1||v>12)return false;next.put("quarter",v);break;
-   case "overlay":if(!Arrays.asList("","kiss","triple","break","final","caption").contains(text))return false;
+   case "overlay":if(!Arrays.asList("","kiss","triple","cheer","break","final","caption").contains(text))return false;
     next.put("overlay",text).put("overlayUntil",v>0?now+Math.min(v,300)*1000L:0);break;
    case "caption":next.put("caption",text.substring(0,Math.min(text.length(),100))).put("overlay","caption").put("overlayUntil",0);break;
    case "showScore":next.put("showScore",v!=0);break;
