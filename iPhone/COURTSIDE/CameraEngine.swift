@@ -157,10 +157,27 @@ final class CameraEngine: ObservableObject {
             publishing = true
             bridge.setCameraStatus(ready: cameraReady, publishing: true)
             message = "Invio video attivo · controlla l’anteprima in Facebook Live Producer"
+        } catch RTMPStream.Error.requestFailed(let response) {
+            guard generation == streamGeneration else { return }
+            publishing = false
+            let code = response.status?.code ?? "risposta non disponibile"
+            message = "Facebook ha rifiutato l’invio (\(code)). Seleziona Software di streaming e ricopia URL e chiave."
+            try? await connection.close()
+        } catch RTMPStream.Error.requestTimedOut {
+            guard generation == streamGeneration else { return }
+            publishing = false
+            message = "Facebook non ha risposto all’invio. Controlla Software di streaming, URL, chiave e connessione."
+            try? await connection.close()
+        } catch RTMPConnection.Error.requestFailed(let response) {
+            guard generation == streamGeneration else { return }
+            publishing = false
+            let code = response.status?.code ?? "risposta non disponibile"
+            message = "Connessione Facebook rifiutata (\(code)). Controlla l’URL del server."
+            try? await connection.close()
         } catch {
             guard generation == streamGeneration else { return }
             publishing = false
-            message = "Invio non riuscito: \(error.localizedDescription)"
+            message = "Invio non riuscito: \(error.localizedDescription). Controlla URL, chiave e connessione."
             try? await connection.close()
         }
     }

@@ -224,7 +224,7 @@ struct BATHybridView: UIViewRepresentable {
 struct FacebookProducerView: View {
     @ObservedObject var camera: CameraEngine
     let close: () -> Void
-    @State private var notice = "Crea una diretta nel gruppo e scegli Software di streaming."
+    @State private var notice = "Nel gruppo BAT TV seleziona Software di streaming (icona chiave), poi copia URL e chiave qui sopra."
 
     var body: some View {
         VStack(spacing: 0) {
@@ -248,10 +248,16 @@ struct FacebookProducerView: View {
             .buttonStyle(.bordered)
             .font(.caption)
             .padding(.horizontal, 8)
-            Text(camera.message == "Camera spenta" ? notice : camera.message)
-                .font(.caption).foregroundStyle(.yellow)
+            Text(notice)
+                .font(.caption2).foregroundStyle(.white.opacity(0.8))
                 .lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12).padding(.vertical, 5)
+                .padding(.horizontal, 12).padding(.top, 4)
+            if camera.message != "Camera spenta" {
+                Text(camera.message)
+                    .font(.caption).foregroundStyle(.yellow)
+                    .lineLimit(3).frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12).padding(.bottom, 5)
+            }
             FacebookProducerBrowser()
         }
         .background(Color(red: 0.08, green: 0.04, blue: 0.12))
