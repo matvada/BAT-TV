@@ -48,6 +48,8 @@ final class CameraEngine: ObservableObject {
     private var lastRevision = -1
     private var lastLiveCommand: Double?
     private var serverOffset = 0.0
+    private var producerVisible = false
+    private var lastLandscapeOrientation: AVCaptureVideoOrientation = .landscapeRight
 
     init() {
         preview.videoGravity = .resizeAspectFill
@@ -70,11 +72,18 @@ final class CameraEngine: ObservableObject {
         let orientation = UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .first { $0.activationState == .foregroundActive }?.interfaceOrientation
-        return orientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+        if orientation == .landscapeLeft { lastLandscapeOrientation = .landscapeLeft }
+        if orientation == .landscapeRight { lastLandscapeOrientation = .landscapeRight }
+        return lastLandscapeOrientation
+    }
+
+    func setProducerVisible(_ visible: Bool) {
+        if visible { _ = captureOrientation() }
+        producerVisible = visible
     }
 
     func updateCameraOrientation() async {
-        guard cameraReady else { return }
+        guard cameraReady, !producerVisible else { return }
         await mixer.setVideoOrientation(captureOrientation())
     }
 

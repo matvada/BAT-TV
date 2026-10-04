@@ -8,16 +8,60 @@ enum BATBrand {
     static let yellow = UIColor(red: 1, green: 254/255, blue: 15/255, alpha: 1)
 }
 
+@MainActor
+final class BATOrientation: NSObject, UIApplicationDelegate {
+    static var allowed: UIInterfaceOrientationMask = .landscape
+
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        Self.allowed
+    }
+
+    static func showProducer() {
+        change(to: .portrait)
+    }
+
+    static func showCamera(preferred: UIInterfaceOrientationMask) {
+        allowed = .landscape
+        request(preferred)
+    }
+
+    private static func change(to mask: UIInterfaceOrientationMask) {
+        allowed = mask
+        request(mask)
+    }
+
+    private static func request(_ mask: UIInterfaceOrientationMask) {
+        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive }) else { return }
+        scene.windows.first(where: { $0.isKeyWindow })?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { error in
+            NSLog("BAT tv: orientamento richiesto non disponibile: %@", error.localizedDescription)
+        }
+    }
+}
+
 struct ContentView: View {
     @StateObject private var camera = CameraEngine()
     @State private var showFacebookProducer = false
+    @State private var cameraOrientation: UIInterfaceOrientationMask = .landscapeRight
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             CameraPreview(view: camera.preview).ignoresSafeArea()
-            BATHybridView(camera: camera, openFacebookProducer: { showFacebookProducer = true }).ignoresSafeArea()
+            BATHybridView(camera: camera, openFacebookProducer: {
+                let sceneOrientation = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+                    .first(where: { $0.activationState == .foregroundActive })?.interfaceOrientation
+                cameraOrientation = sceneOrientation == .landscapeLeft ? .landscapeLeft : .landscapeRight
+                camera.setProducerVisible(true)
+                showFacebookProducer = true
+                BATOrientation.showProducer()
+            }).ignoresSafeArea()
         }
-        .fullScreenCover(isPresented: $showFacebookProducer) {
+        .fullScreenCover(isPresented: $showFacebookProducer, onDismiss: {
+            camera.setProducerVisible(false)
+            BATOrientation.showCamera(preferred: cameraOrientation)
+            Task { await camera.updateCameraOrientation() }
+        }) {
             FacebookProducerView(camera: camera) { showFacebookProducer = false }
         }
         .preferredColorScheme(.dark)
@@ -220,4 +264,7 @@ struct FacebookProducerBrowser: UIViewRepresentable {
 }
 
 @main
-struct BATTVApp: App { var body: some Scene { WindowGroup { ContentView() } } }
+struct BATTVApp: App {
+    @UIApplicationDelegateAdaptor(BATOrientation.self) private var orientation
+    var body: some Scene { WindowGroup { ContentView() } }
+}
