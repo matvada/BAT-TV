@@ -6,6 +6,51 @@ import SwiftUI
 import UIKit
 import VideoToolbox
 
+/// Keep the RTMP socket queue short when the mobile upload rate changes.
+/// The library reports queued and sent bytes every second; its default leaves
+/// encoded frames waiting, which can put the broadcast minutes behind reality.
+actor BATLiveBitRateStrategy: StreamBitRateStrategy {
+    let mamimumVideoBitRate = 3_000_000
+    let mamimumAudioBitRate = 0
+    private(set) var queuedSeconds = 0.0
+    private var stableReports = 0
+
+    func adjustBitrate(_ event: NetworkMonitorEvent, stream: some StreamConvertible) async {
+        let report: NetworkMonitorReport
+        switch event {
+        case .status(let value), .publishInsufficientBWOccured(let value): report = value
+        case .reset:
+            queuedSeconds = 0
+            stableReports = 0
+            return
+        }
+        let bytesPerSecond = report.currentBytesOutPerSecond
+        queuedSeconds = report.currentQueueBytesOut == 0 ? 0 :
+            min(99, Double(report.currentQueueBytesOut) / Double(max(1, bytesPerSecond)))
+        var settings = await stream.videoSettings
+        let original = settings
+        if queuedSeconds > 0.75 {
+            stableReports = 0
+            let sustainable = max(400_000, Int(Double(bytesPerSecond * 8) * 0.65) - 96_000)
+            settings.bitRate = max(400_000, min(settings.bitRate * 3 / 4, sustainable))
+            settings.frameInterval = queuedSeconds > 3 ? VideoCodecSettings.frameInterval01 :
+                queuedSeconds > 1.5 ? VideoCodecSettings.frameInterval05 : VideoCodecSettings.frameInterval10
+        } else if queuedSeconds < 0.25 {
+            stableReports += 1
+            if stableReports >= 10 {
+                settings.bitRate = min(mamimumVideoBitRate, settings.bitRate + 150_000)
+                stableReports = 0
+            }
+            settings.frameInterval = 0
+        } else {
+            stableReports = 0
+        }
+        if settings.bitRate != original.bitRate || settings.frameInterval != original.frameInterval {
+            try? await stream.setVideoSettings(settings)
+        }
+    }
+}
+
 @ScreenActor
 final class OverlayStage {
     static let shared = OverlayStage()
@@ -46,8 +91,7 @@ final class CameraEngine: ObservableObject {
     // Facebook can take longer than HaishinKit's 3-second default to acknowledge publish.
     private let connection = RTMPConnection(requestTimeout: 15_000)
     private lazy var stream = RTMPStream(connection: connection)
-    private let recorder = StreamRecorder()
-    private var localRecordingURL: URL?
+    private let bitrateStrategy = BATLiveBitRateStrategy()
     private let renderer = ScoreboardRenderer()
     private var subscriptions = Set<AnyCancellable>()
     private var clock: Task<Void, Never>?
@@ -56,6 +100,7 @@ final class CameraEngine: ObservableObject {
     private var serverOffset = 0.0
     private var producerVisible = false
     private var lastLandscapeOrientation: AVCaptureVideoOrientation = .landscapeRight
+    private var reportedQueueSeconds = 0
 
     init() {
         preview.videoGravity = .resizeAspectFill
@@ -110,7 +155,10 @@ final class CameraEngine: ObservableObject {
             videoSettings.expectedFrameRate = 30
             videoSettings.maxKeyFrameIntervalDuration = 2
             videoSettings.profileLevel = kVTProfileLevel_H264_High_AutoLevel as String
+            videoSettings.allowFrameReordering = false
             try await stream.setVideoSettings(videoSettings)
+            await stream.setVideoInputBufferCounts(1)
+            await stream.setBitRateStrategy(bitrateStrategy)
             var mixerSettings = await mixer.videoMixerSettings
             mixerSettings.mode = .offscreen
             await mixer.setVideoMixerSettings(mixerSettings)
@@ -120,7 +168,6 @@ final class CameraEngine: ObservableObject {
             try await mixer.attachAudio(microphone)
             await mixer.addOutput(stream)
             await stream.addOutput(preview)
-            await stream.addOutput(recorder)
             await OverlayStage.shared.install(on: mixer)
             await mixer.startRunning()
             cameraReady = true
@@ -130,6 +177,7 @@ final class CameraEngine: ObservableObject {
             clock = Task { [weak self] in
                 while !Task.isCancelled {
                     await self?.drawOverlay()
+                    await self?.reportUploadQueue()
                     try? await Task.sleep(for: .milliseconds(250))
                 }
             }
@@ -144,7 +192,7 @@ final class CameraEngine: ObservableObject {
         await mixer.stopRunning()
         cameraReady = false
         bridge.setCameraStatus(ready: false, publishing: false)
-        message = localRecordingURL == nil ? "Camera spenta" : "Camera spenta · copia in File > Sul mio iPhone > BAT tv"
+        message = "Camera spenta"
     }
 
     func beginLive() async {
@@ -165,18 +213,9 @@ final class CameraEngine: ObservableObject {
             guard generation == streamGeneration, cameraReady else { return }
             try await stream.publish(key)
             guard generation == streamGeneration, cameraReady else { return }
-            localRecordingURL = nil
-            do {
-                await recorder.setMovieFragmentInterval(10)
-                try await recorder.startRecording()
-            } catch {
-                message = "Invio attivo, ma copia locale non disponibile: \(error.localizedDescription)"
-            }
             publishing = true
             bridge.setCameraStatus(ready: cameraReady, publishing: true)
-            if await recorder.isRecording {
-                message = "Segnale inviato e copia locale in registrazione. Pubblica il post su Facebook."
-            }
+            message = "Segnale inviato. Completa i dettagli del post e premi Trasmetti in diretta su Facebook."
         } catch RTMPStream.Error.requestFailed(let response) {
             guard generation == streamGeneration else { return }
             publishing = false
@@ -206,19 +245,11 @@ final class CameraEngine: ObservableObject {
         guard publishing || connecting else { return }
         streamGeneration += 1
         connecting = false
-        if await recorder.isRecording {
-            do { localRecordingURL = try await recorder.stopRecording() }
-            catch { message = "Copia locale non salvata: \(error.localizedDescription)" }
-        }
         try? await stream.close()
         try? await connection.close()
         publishing = false
         bridge.setCameraStatus(ready: cameraReady, publishing: false)
-        if localRecordingURL != nil {
-            message = "Invio fermato · copia locale in File > Sul mio iPhone > BAT tv"
-        } else if !message.hasPrefix("Copia locale non salvata") {
-            message = "Invio fermato · nessuna copia locale disponibile"
-        }
+        message = "Invio video fermato"
     }
 
     private func serverNow() -> Double { Date().timeIntervalSince1970 * 1000 + serverOffset }
@@ -226,6 +257,21 @@ final class CameraEngine: ObservableObject {
     private func drawOverlay() async {
         guard let game, let image = renderer.image(for: game, at: serverNow()) else { return }
         await OverlayStage.shared.update(image)
+    }
+
+    private func reportUploadQueue() async {
+        guard publishing else { return }
+        let seconds = await bitrateStrategy.queuedSeconds
+        if seconds > 2 {
+            let rounded = min(99, Int(seconds.rounded(.up)))
+            if rounded != reportedQueueSeconds {
+                reportedQueueSeconds = rounded
+                message = "Rete lenta: invio circa \(rounded) s in coda · qualità ridotta automaticamente"
+            }
+        } else if reportedQueueSeconds != 0 && seconds < 0.5 {
+            reportedQueueSeconds = 0
+            message = "Invio tornato in tempo reale"
+        }
     }
 }
 
