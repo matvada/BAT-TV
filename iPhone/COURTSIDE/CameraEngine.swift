@@ -10,12 +10,13 @@ import VideoToolbox
 /// The library reports queued and sent bytes every second; its default leaves
 /// encoded frames waiting, which can put the broadcast minutes behind reality.
 actor BATLiveBitRateStrategy: StreamBitRateStrategy {
-    private(set) var mamimumVideoBitRate = 3_000_000
+    nonisolated let mamimumVideoBitRate = 3_000_000
     let mamimumAudioBitRate = 0
+    private var ceiling = 3_000_000
     private(set) var queuedSeconds = 0.0
     private var stableReports = 0
 
-    func setCeiling(_ value: Int) { mamimumVideoBitRate = value; stableReports = 0 }
+    func setCeiling(_ value: Int) { ceiling = value; stableReports = 0 }
 
     func adjustBitrate(_ event: NetworkMonitorEvent, stream: some StreamConvertible) async {
         let report: NetworkMonitorReport
@@ -40,7 +41,7 @@ actor BATLiveBitRateStrategy: StreamBitRateStrategy {
         } else if queuedSeconds < 0.25 {
             stableReports += 1
             if stableReports >= 10 {
-                settings.bitRate = min(mamimumVideoBitRate, settings.bitRate + 150_000)
+                settings.bitRate = min(ceiling, settings.bitRate + 150_000)
                 stableReports = 0
             }
             settings.frameInterval = 0
