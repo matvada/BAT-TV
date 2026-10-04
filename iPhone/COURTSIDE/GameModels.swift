@@ -139,6 +139,10 @@ extension Game {
         case "rename":
             guard let team, ["home", "away"].contains(team), let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
             if team == "home" { home.name = String(text.prefix(24)) } else { away.name = String(text.prefix(24)) }
+        case "teamColor":
+            guard let team, ["home", "away"].contains(team), let text,
+                  text.range(of: "^#[0-9A-Fa-f]{6}$", options: .regularExpression) != nil else { return false }
+            if team == "home" { home.color = text } else { away.color = text }
         default: return false
         }
         return true

@@ -36,6 +36,8 @@ public final class GameStore {
    case "showScore":next.put("showScore",v!=0);break;
    case "rename":if(!t.equals("home")&&!t.equals("away")||text.trim().isEmpty())return false;
     next.getJSONObject(t).put("name",text.substring(0,Math.min(24,text.length())));break;
+   case "teamColor":if((!t.equals("home")&&!t.equals("away"))||!text.matches("#[0-9a-fA-F]{6}"))return false;
+    next.getJSONObject(t).put("color",text);break;
    case "undo":if(!history.isEmpty()){next=history.removeLast();next.put("clock",remaining(next,now)).put("running",false).put("live",state.optBoolean("live"));}break;
    default:return false;
   }

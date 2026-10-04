@@ -43,15 +43,17 @@ final class ScoreboardRenderer {
     }
 
     private func drawChannel(in cg: CGContext) {
-        let rect = CGRect(x: 1132, y: 72, width: 110, height: 110)
+        let rect = CGRect(x: 1158, y: 72, width: 84, height: 84)
         cg.saveGState()
-        UIBezierPath(roundedRect: rect, cornerRadius: 18).addClip()
+        UIBezierPath(roundedRect: rect, cornerRadius: 15).addClip()
         cg.interpolationQuality = .high
         channelLogo?.draw(in: rect)
         cg.restoreGState()
     }
 
     private func drawScore(_ game: Game, at now: Double, in cg: CGContext) {
+        cg.saveGState()
+        cg.translateBy(x: 0, y: -35)
         fill(CGRect(x: 58, y: 590, width: 1164, height: 84), BATBrand.purple.withAlphaComponent(0.96), in: cg)
         fill(CGRect(x: 58, y: 590, width: 7, height: 84), color(game.home.color), in: cg)
         fill(CGRect(x: 1215, y: 590, width: 7, height: 84), color(game.away.color), in: cg)
@@ -68,6 +70,7 @@ final class ScoreboardRenderer {
         } else {
             label(quarter, in: CGRect(x: 530, y: 591, width: 220, height: 80), size: 56, color: BATBrand.yellow)
         }
+        cg.restoreGState()
     }
 
     private func drawKiss(in cg: CGContext) {
