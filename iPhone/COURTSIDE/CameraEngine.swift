@@ -46,6 +46,8 @@ final class CameraEngine: ObservableObject {
     // Facebook can take longer than HaishinKit's 3-second default to acknowledge publish.
     private let connection = RTMPConnection(requestTimeout: 15_000)
     private lazy var stream = RTMPStream(connection: connection)
+    private let recorder = StreamRecorder()
+    private var localRecordingURL: URL?
     private let renderer = ScoreboardRenderer()
     private var subscriptions = Set<AnyCancellable>()
     private var clock: Task<Void, Never>?
@@ -103,7 +105,8 @@ final class CameraEngine: ObservableObject {
             try AVAudioSession.sharedInstance().setActive(true)
             var videoSettings = await stream.videoSettings
             videoSettings.videoSize = CGSize(width: 1920, height: 1080)
-            videoSettings.bitRate = 5_000_000
+            // Keep headroom on mobile uplinks so the RTMP send queue can stay near real time.
+            videoSettings.bitRate = 3_000_000
             videoSettings.expectedFrameRate = 30
             videoSettings.maxKeyFrameIntervalDuration = 2
             videoSettings.profileLevel = kVTProfileLevel_H264_High_AutoLevel as String
@@ -117,6 +120,7 @@ final class CameraEngine: ObservableObject {
             try await mixer.attachAudio(microphone)
             await mixer.addOutput(stream)
             await stream.addOutput(preview)
+            await stream.addOutput(recorder)
             await OverlayStage.shared.install(on: mixer)
             await mixer.startRunning()
             cameraReady = true
@@ -140,7 +144,7 @@ final class CameraEngine: ObservableObject {
         await mixer.stopRunning()
         cameraReady = false
         bridge.setCameraStatus(ready: false, publishing: false)
-        message = "Camera spenta"
+        message = localRecordingURL == nil ? "Camera spenta" : "Camera spenta · copia in File > Sul mio iPhone > BAT tv"
     }
 
     func beginLive() async {
@@ -161,9 +165,18 @@ final class CameraEngine: ObservableObject {
             guard generation == streamGeneration, cameraReady else { return }
             try await stream.publish(key)
             guard generation == streamGeneration, cameraReady else { return }
+            localRecordingURL = nil
+            do {
+                await recorder.setMovieFragmentInterval(10)
+                try await recorder.startRecording()
+            } catch {
+                message = "Invio attivo, ma copia locale non disponibile: \(error.localizedDescription)"
+            }
             publishing = true
             bridge.setCameraStatus(ready: cameraReady, publishing: true)
-            message = "Segnale inviato. Completa i dettagli del post e premi Trasmetti in diretta su Facebook."
+            if await recorder.isRecording {
+                message = "Segnale inviato e copia locale in registrazione. Pubblica il post su Facebook."
+            }
         } catch RTMPStream.Error.requestFailed(let response) {
             guard generation == streamGeneration else { return }
             publishing = false
@@ -193,11 +206,19 @@ final class CameraEngine: ObservableObject {
         guard publishing || connecting else { return }
         streamGeneration += 1
         connecting = false
+        if await recorder.isRecording {
+            do { localRecordingURL = try await recorder.stopRecording() }
+            catch { message = "Copia locale non salvata: \(error.localizedDescription)" }
+        }
         try? await stream.close()
         try? await connection.close()
         publishing = false
         bridge.setCameraStatus(ready: cameraReady, publishing: false)
-        message = "Invio video fermato"
+        if localRecordingURL != nil {
+            message = "Invio fermato · copia locale in File > Sul mio iPhone > BAT tv"
+        } else if !message.hasPrefix("Copia locale non salvata") {
+            message = "Invio fermato · nessuna copia locale disponibile"
+        }
     }
 
     private func serverNow() -> Double { Date().timeIntervalSince1970 * 1000 + serverOffset }
