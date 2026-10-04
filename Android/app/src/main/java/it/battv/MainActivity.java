@@ -17,7 +17,7 @@ import org.json.*;
 import java.util.*;
 
 public final class MainActivity extends Activity implements BleLink.Events,ConnectChecker {
- private WebView web;private OpenGlView preview;private RtmpCamera2 camera;private ImageObjectFilterRender filter;private Bitmap logo;
+ private WebView web;private OpenGlView preview;private RtmpCamera2 camera;private ImageObjectFilterRender filter;private Bitmap logo,scoreWatermark;
  private int videoHeight=1080;
  private BleLink link;private GameStore game;private String role="",pin="",serverUrl="",streamKey="";
  private boolean authenticated=false,ready=false,live=false;private int failedPins=0;private long lockUntil=0;
@@ -37,7 +37,9 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   web.setWebViewClient(new WebViewClient(){@Override public boolean shouldOverrideUrlLoading(WebView v,WebResourceRequest r){return true;}});
   web.addJavascriptInterface(new Bridge(),"Native");frame.addView(web,new FrameLayout.LayoutParams(-1,-1));setContentView(frame);web.loadUrl("file:///android_asset/index.html");
   showSplash(frame);
-  logo=BitmapFactory.decodeResource(getResources(),R.drawable.bat_icon);link=new BleLink(this,this);main.postDelayed(ticker,500);
+  logo=BitmapFactory.decodeResource(getResources(),R.drawable.bat_icon);
+  try(java.io.InputStream input=getAssets().open("bat_watermark.jpg")){scoreWatermark=BitmapFactory.decodeStream(input);}catch(java.io.IOException e){android.util.Log.w("BAT tv","Filigrana non disponibile",e);}
+  link=new BleLink(this,this);main.postDelayed(ticker,500);
  }
  private void showSplash(FrameLayout root){
   FrameLayout splash=new FrameLayout(this);splash.setBackgroundColor(Color.rgb(35,10,61));
@@ -138,7 +140,9 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void drawOverlay()throws JSONException{
   Bitmap b=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
-  if(s.optBoolean("showScore")){c.save();c.translate(0,35);p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(58,520,1222,604,14,14,p);p.setColor(teamColor(h.optString("color"),Color.rgb(81,42,125)));c.drawRect(58,520,65,604,p);p.setColor(teamColor(a.optString("color"),Color.rgb(255,254,15)));c.drawRect(1215,520,1222,604,p);label(c,p,h.optString("name"),86,571,24,Color.WHITE);drawFouls(c,p,h.optInt("fouls"),96,586);label(c,p,""+h.optInt("score"),460,577,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,577,42,Color.WHITE);label(c,p,a.optString("name"),925,571,24,Color.WHITE);drawFouls(c,p,a.optInt("fouls"),1062,586);
+  if(s.optBoolean("showScore")){c.save();c.translate(0,49);p.setColor(Color.argb(245,81,42,125));c.drawRect(58,520,1222,604,p);
+   if(scoreWatermark!=null){c.save();c.clipRect(58,520,1222,604);p.setAlpha(46);p.setFilterBitmap(true);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));c.drawBitmap(scoreWatermark,null,new Rect(320,320,960,967),p);p.setXfermode(null);p.setAlpha(255);c.restore();}
+   p.setColor(teamColor(h.optString("color"),Color.rgb(81,42,125)));c.drawRect(58,520,65,604,p);p.setColor(teamColor(a.optString("color"),Color.rgb(255,254,15)));c.drawRect(1215,520,1222,604,p);label(c,p,h.optString("name").substring(0,Math.min(3,h.optString("name").length())).toUpperCase(Locale.ROOT),86,571,24,Color.WHITE);drawFouls(c,p,h.optInt("fouls"),164,565);label(c,p,""+h.optInt("score"),460,577,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,577,42,Color.WHITE);drawFouls(c,p,a.optInt("fouls"),950,565);label(c,p,a.optString("name").substring(0,Math.min(3,a.optString("name").length())).toUpperCase(Locale.ROOT),1054,571,24,Color.WHITE);
    String quarter=s.optInt("quarter")<=4?"Q"+s.optInt("quarter"):"OT"+(s.optInt("quarter")-4);
    if(s.optBoolean("clockEnabled",true)){int r=game.remaining();label(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),565,563,32,Color.rgb(255,254,15));label(c,p,quarter,612,592,18,Color.LTGRAY);}
    else{p.setTextAlign(Paint.Align.CENTER);label(c,p,quarter,640,584,58,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}c.restore();}

@@ -8,7 +8,7 @@ public final class GameStore {
  private final ArrayDeque<JSONObject> history=new ArrayDeque<>();
  private final LinkedHashSet<String> seen=new LinkedHashSet<>();
  public GameStore() { try {
-  state=new JSONObject().put("home",team("BAT","#512A7D")).put("away",team("AVVERSARI","#FFFE0F"))
+  state=new JSONObject().put("home",team("BAT","#512A7D")).put("away",team("AVV","#FFFE0F"))
    .put("quarter",1).put("clock",600).put("clockEnabled",true).put("running",false).put("startedAt",System.currentTimeMillis())
    .put("overlay","").put("overlayUntil",0).put("caption","").put("showScore",true).put("live",false).put("liveCommand",0);
  }catch(JSONException e){throw new IllegalStateException(e);} }
@@ -35,7 +35,7 @@ public final class GameStore {
    case "caption":next.put("caption",text.substring(0,Math.min(text.length(),100))).put("overlay","caption").put("overlayUntil",0);break;
    case "showScore":next.put("showScore",v!=0);break;
    case "rename":if(!t.equals("home")&&!t.equals("away")||text.trim().isEmpty())return false;
-    next.getJSONObject(t).put("name",text.substring(0,Math.min(24,text.length())));break;
+    next.getJSONObject(t).put("name",text.trim().substring(0,Math.min(3,text.trim().length())).toUpperCase(Locale.ROOT));break;
    case "teamColor":if((!t.equals("home")&&!t.equals("away"))||!text.matches("#[0-9a-fA-F]{6}"))return false;
     next.getJSONObject(t).put("color",text);break;
    case "undo":if(!history.isEmpty()){next=history.removeLast();next.put("clock",remaining(next,now)).put("running",false).put("live",state.optBoolean("live"));}break;

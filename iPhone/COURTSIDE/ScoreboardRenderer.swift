@@ -12,6 +12,7 @@ final class ScoreboardRenderer {
               let crop = image.cropping(to: CGRect(x: 94, y: 65, width: 718, height: 718)) else { return nil }
         return UIImage(cgImage: crop)
     }()
+    private lazy var scoreWatermark = UIImage(named: "BATWatermark")
 
     func image(for game: Game, at serverNow: Double) -> CGImage? {
         let format = UIGraphicsImageRendererFormat()
@@ -53,18 +54,26 @@ final class ScoreboardRenderer {
 
     private func drawScore(_ game: Game, at now: Double, in cg: CGContext) {
         cg.saveGState()
-        cg.translateBy(x: 0, y: -35)
-        fill(CGRect(x: 58, y: 590, width: 1164, height: 84), BATBrand.purple.withAlphaComponent(0.96), in: cg)
+        cg.translateBy(x: 0, y: -21)
+        let bar = CGRect(x: 58, y: 590, width: 1164, height: 84)
+        cg.setFillColor(BATBrand.purple.withAlphaComponent(0.96).cgColor)
+        cg.fill(bar)
+        cg.saveGState()
+        cg.clip(to: bar)
+        cg.setBlendMode(.multiply)
+        cg.setAlpha(0.18)
+        scoreWatermark?.draw(in: CGRect(x: 320, y: 390, width: 640, height: 647))
+        cg.restoreGState()
         fill(CGRect(x: 58, y: 590, width: 7, height: 84), color(game.home.color), in: cg)
         fill(CGRect(x: 1215, y: 590, width: 7, height: 84), color(game.away.color), in: cg)
         drawLogo(game.home.logo, in: CGRect(x: 77, y: 600, width: 62, height: 62))
         drawLogo(game.away.logo, in: CGRect(x: 1141, y: 600, width: 62, height: 62))
-        label(game.home.name.uppercased(), in: CGRect(x: 150, y: 603, width: 220, height: 57), size: 23, alignment: .left)
-        drawFouls(game.home.fouls, x: 160, y: 651, in: cg)
+        label(String(game.home.name.prefix(3)).uppercased(), in: CGRect(x: 150, y: 603, width: 85, height: 43), size: 23, alignment: .left)
+        drawFouls(game.home.fouls, x: 248, y: 620, in: cg)
         label("\(game.home.score)", in: CGRect(x: 447, y: 603, width: 90, height: 57), size: 40)
         label("\(game.away.score)", in: CGRect(x: 743, y: 603, width: 90, height: 57), size: 40)
-        label(game.away.name.uppercased(), in: CGRect(x: 899, y: 603, width: 230, height: 57), size: 23, alignment: .right)
-        drawFouls(game.away.fouls, x: 1062, y: 651, in: cg)
+        drawFouls(game.away.fouls, x: 950, y: 620, in: cg)
+        label(String(game.away.name.prefix(3)).uppercased(), in: CGRect(x: 1038, y: 603, width: 91, height: 43), size: 23, alignment: .right)
         let quarter = game.quarter <= 4 ? "Q\(game.quarter)" : "OT\(game.quarter - 4)"
         if game.clockEnabled {
             label(game.clockText(at: now), in: CGRect(x: 550, y: 597, width: 180, height: 40), size: 30, color: BATBrand.yellow)

@@ -101,7 +101,7 @@ enum CameraIssue: LocalizedError {
 extension Game {
     static func fresh(now: Double) -> Game {
         Game(home: Team(name: "BAT", color: "#512A7D", logo: "", score: 0, fouls: 0, timeouts: 0),
-             away: Team(name: "AVVERSARI", color: "#FFFE0F", logo: "", score: 0, fouls: 0, timeouts: 0),
+             away: Team(name: "AVV", color: "#FFFE0F", logo: "", score: 0, fouls: 0, timeouts: 0),
              quarter: 1, clock: 600, clockEnabled: true, running: false, startedAt: now,
              overlay: "", overlayUntil: 0, caption: "", showScore: true, live: false, liveCommand: 0)
     }
@@ -139,7 +139,8 @@ extension Game {
         case "showScore": showScore = value != 0
         case "rename":
             guard let team, ["home", "away"].contains(team), let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-            if team == "home" { home.name = String(text.prefix(24)) } else { away.name = String(text.prefix(24)) }
+            let abbreviation = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(3)).uppercased()
+            if team == "home" { home.name = abbreviation } else { away.name = abbreviation }
         case "teamColor":
             guard let team, ["home", "away"].contains(team), let text,
                   text.range(of: "^#[0-9A-Fa-f]{6}$", options: .regularExpression) != nil else { return false }
