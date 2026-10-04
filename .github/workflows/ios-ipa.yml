@@ -37,15 +37,16 @@ jobs:
             build
       - name: Prepara IPA per SideStore
         run: |
+          IPA="BAT-tv-1.0.${GITHUB_RUN_NUMBER}-iPhone-SideStore.ipa"
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$RUNNER_TEMP/BATDerivedData/Build/Products/Release-iphoneos/BAT tv.app" "$RUNNER_TEMP/ipa/Payload/"
           cd "$RUNNER_TEMP/ipa"
-          zip -qry "$GITHUB_WORKSPACE/BAT-tv-SideStore.ipa" Payload
-          unzip -t "$GITHUB_WORKSPACE/BAT-tv-SideStore.ipa"
+          zip -qry "$GITHUB_WORKSPACE/$IPA" Payload
+          unzip -t "$GITHUB_WORKSPACE/$IPA"
       - uses: actions/upload-artifact@v4
         with:
           name: BAT-tv-iPhone
-          path: BAT-tv-SideStore.ipa
+          path: BAT-tv-1.0.*-iPhone-SideStore.ipa
           if-no-files-found: error
   android:
     runs-on: ubuntu-latest
@@ -64,11 +65,11 @@ jobs:
         working-directory: Android
         run: ./gradlew --no-daemon :app:assembleDebug
       - name: Prepara APK
-        run: cp Android/app/build/outputs/apk/debug/app-debug.apk BAT-tv-Android.apk
+        run: cp Android/app/build/outputs/apk/debug/app-debug.apk "BAT-tv-1.0.${GITHUB_RUN_NUMBER}-Android.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: BAT-tv-Android
-          path: BAT-tv-Android.apk
+          path: BAT-tv-1.0.*-Android.apk
           if-no-files-found: error
   publish:
     needs: [iphone, android]
@@ -77,6 +78,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           name: BAT-tv-iPhone
@@ -88,24 +91,40 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="ios-build-${GITHUB_RUN_NUMBER}"
+          IPA="BAT-tv-1.0.${GITHUB_RUN_NUMBER}-iPhone-SideStore.ipa"
+          APK="BAT-tv-1.0.${GITHUB_RUN_NUMBER}-Android.apk"
+          python3 scripts/release_notes.py current "$GITHUB_RUN_NUMBER" > "$RUNNER_TEMP/release-notes.md"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" BAT-tv-SideStore.ipa BAT-tv-Android.apk --clobber
+            gh release upload "$TAG" "$IPA" "$APK" --clobber
+            gh release edit "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md"
           else
-            gh release create "$TAG" BAT-tv-SideStore.ipa BAT-tv-Android.apk \
+            gh release create "$TAG" "$IPA" "$APK" \
               --target "$GITHUB_SHA" \
-              --title "BAT tv · build ${GITHUB_RUN_NUMBER}" \
-              --notes "IPA per SideStore e APK Android di prova."
+              --title "BAT tv · 1.0.${GITHUB_RUN_NUMBER}" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
-          for file in BAT-tv-SideStore.ipa BAT-tv-Android.apk; do
+          for file in "$IPA" "$APK"; do
             curl -fsSL --retry 8 --retry-all-errors --retry-delay 2 \
               "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${file}" \
               -o "$RUNNER_TEMP/$file"
             cmp "$file" "$RUNNER_TEMP/$file"
           done
+      - name: Documenta le release precedenti
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          while read -r number; do
+            tag="ios-build-${number}"
+            current="$(gh release view "$tag" --json body --jq '.body')"
+            if [[ "$current" == 'IPA per SideStore e APK Android di prova.' || "$current" == 'IPA non firmato per SideStore. Versione di prova.' ]]; then
+              python3 scripts/release_notes.py legacy "$number" > "$RUNNER_TEMP/notes-${number}.md"
+              gh release edit "$tag" --notes-file "$RUNNER_TEMP/notes-${number}.md"
+            fi
+          done < <(python3 scripts/release_notes.py legacy-list)
       - name: Aggiorna la sorgente SideStore
         run: |
           git pull --rebase origin main
-          python3 scripts/update_altsource.py BAT-tv-SideStore.ipa "$GITHUB_RUN_NUMBER"
+          python3 scripts/update_altsource.py "BAT-tv-1.0.${GITHUB_RUN_NUMBER}-iPhone-SideStore.ipa" "$GITHUB_RUN_NUMBER"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add altstore.json

@@ -25,6 +25,8 @@ bundle_id = info["CFBundleIdentifier"]
 if (str(build) != run_number or str(version) != f"1.0.{run_number}"
         or bundle_id != "it.courtside.camera"):
     raise SystemExit("IPA version or bundle ID differs from expected build")
+if ipa.name != f"BAT-tv-{version}-iPhone-SideStore.ipa":
+    raise SystemExit("IPA filename differs from expected version")
 
 source = {
     "name": "BAT tv",
@@ -42,7 +44,7 @@ source = {
                 {
                     "version": str(version),
                     "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "downloadURL": f"{base}/releases/download/{tag}/BAT-tv-SideStore.ipa",
+                    "downloadURL": f"{base}/releases/download/{tag}/{ipa.name}",
                     "size": ipa.stat().st_size,
                     "minOSVersion": "17.0",
                 }
