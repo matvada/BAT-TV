@@ -12,6 +12,9 @@ final class OverlayStage {
     private var object: ImageScreenObject?
 
     func install(on mixer: MediaMixer) {
+        // The offscreen compositor defaults to 1280×720 even when capture and
+        // encoding are 1920×1080. Match its canvas to the overlay and video.
+        mixer.screen.size = CGSize(width: 1920, height: 1080)
         let image = ImageScreenObject()
         image.size = CGSize(width: 1920, height: 1080)
         image.horizontalAlignment = .left
