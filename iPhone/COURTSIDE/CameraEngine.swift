@@ -157,7 +157,7 @@ final class CameraEngine: ObservableObject {
             guard generation == streamGeneration, cameraReady else { return }
             publishing = true
             bridge.setCameraStatus(ready: cameraReady, publishing: true)
-            message = "Invio video attivo · controlla l’anteprima in Facebook Live Producer"
+            message = "Segnale inviato. Completa i dettagli del post e premi Trasmetti in diretta su Facebook."
         } catch RTMPStream.Error.requestFailed(let response) {
             guard generation == streamGeneration else { return }
             publishing = false
