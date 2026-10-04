@@ -10,10 +10,12 @@ import VideoToolbox
 /// The library reports queued and sent bytes every second; its default leaves
 /// encoded frames waiting, which can put the broadcast minutes behind reality.
 actor BATLiveBitRateStrategy: StreamBitRateStrategy {
-    let mamimumVideoBitRate = 3_000_000
+    private(set) var mamimumVideoBitRate = 3_000_000
     let mamimumAudioBitRate = 0
     private(set) var queuedSeconds = 0.0
     private var stableReports = 0
+
+    func setCeiling(_ value: Int) { mamimumVideoBitRate = value; stableReports = 0 }
 
     func adjustBitrate(_ event: NetworkMonitorEvent, stream: some StreamConvertible) async {
         let report: NetworkMonitorReport
@@ -101,6 +103,9 @@ final class CameraEngine: ObservableObject {
     private var producerVisible = false
     private var lastLandscapeOrientation: AVCaptureVideoOrientation = .landscapeRight
     private var reportedQueueSeconds = 0
+    private var captureDevice: AVCaptureDevice?
+    @Published var quality = UserDefaults.standard.integer(forKey: "batVideoHeight") == 720 ? 720 :
+        UserDefaults.standard.integer(forKey: "batVideoHeight") == 480 ? 480 : 1080
 
     init() {
         preview.videoGravity = .resizeAspectFill
@@ -138,6 +143,44 @@ final class CameraEngine: ObservableObject {
         await mixer.setVideoOrientation(captureOrientation())
     }
 
+    func setQuality(_ height: Int) async {
+        guard [480, 720, 1080].contains(height), !publishing, !connecting else {
+            message = "Ferma l’invio prima di cambiare risoluzione"; return
+        }
+        let restart = cameraReady
+        if restart { await stopCamera() }
+        quality = height
+        UserDefaults.standard.set(height, forKey: "batVideoHeight")
+        if restart { await startCamera() }
+    }
+
+    func focus(x: Double, y: Double) {
+        guard cameraReady, let device = captureDevice else { return }
+        // Camera sensor coordinates are portrait even when the preview is landscape.
+        let point = captureOrientation() == .landscapeLeft ? CGPoint(x: y, y: 1 - x) : CGPoint(x: 1 - y, y: x)
+        do {
+            try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
+            if device.isFocusPointOfInterestSupported && device.isFocusModeSupported(.autoFocus) {
+                device.focusPointOfInterest = CGPoint(x: min(1, max(0, point.x)), y: min(1, max(0, point.y)))
+                device.focusMode = .autoFocus
+            }
+            if device.isExposurePointOfInterestSupported && device.isExposureModeSupported(.continuousAutoExposure) {
+                device.exposurePointOfInterest = CGPoint(x: min(1, max(0, point.x)), y: min(1, max(0, point.y)))
+                device.exposureMode = .continuousAutoExposure
+            }
+        } catch { message = "Messa a fuoco non disponibile" }
+    }
+
+    func zoom(by ratio: Double) {
+        guard cameraReady, let device = captureDevice, ratio.isFinite else { return }
+        do {
+            try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
+            device.videoZoomFactor = min(min(device.activeFormat.videoMaxZoomFactor, 6), max(1, device.videoZoomFactor * CGFloat(ratio)))
+        } catch { message = "Zoom non disponibile" }
+    }
+
     func startCamera() async {
         guard !cameraReady else { return }
         do {
@@ -149,9 +192,12 @@ final class CameraEngine: ObservableObject {
             try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .videoRecording, options: [.defaultToSpeaker, .allowBluetooth])
             try AVAudioSession.sharedInstance().setActive(true)
             var videoSettings = await stream.videoSettings
-            videoSettings.videoSize = CGSize(width: 1920, height: 1080)
+            let dimensions = quality == 480 ? CGSize(width: 854, height: 480) :
+                quality == 720 ? CGSize(width: 1280, height: 720) : CGSize(width: 1920, height: 1080)
+            let bitRate = quality == 480 ? 900_000 : quality == 720 ? 1_800_000 : 3_000_000
+            videoSettings.videoSize = dimensions
             // Keep headroom on mobile uplinks so the RTMP send queue can stay near real time.
-            videoSettings.bitRate = 3_000_000
+            videoSettings.bitRate = bitRate
             videoSettings.expectedFrameRate = 30
             videoSettings.maxKeyFrameIntervalDuration = 2
             videoSettings.profileLevel = kVTProfileLevel_H264_High_AutoLevel as String
@@ -159,6 +205,7 @@ final class CameraEngine: ObservableObject {
             try await stream.setVideoSettings(videoSettings)
             await stream.setVideoInputBufferCounts(1)
             await stream.setBitRateStrategy(bitrateStrategy)
+            await bitrateStrategy.setCeiling(bitRate)
             var mixerSettings = await mixer.videoMixerSettings
             mixerSettings.mode = .offscreen
             await mixer.setVideoMixerSettings(mixerSettings)
@@ -170,6 +217,7 @@ final class CameraEngine: ObservableObject {
             await stream.addOutput(preview)
             await OverlayStage.shared.install(on: mixer)
             await mixer.startRunning()
+            captureDevice = video
             cameraReady = true
             message = "Camera pronta · tieni aperta questa schermata"
             bridge.setCameraStatus(ready: true, publishing: publishing)
@@ -190,6 +238,7 @@ final class CameraEngine: ObservableObject {
         await endLive()
         clock?.cancel()
         await mixer.stopRunning()
+        captureDevice = nil
         cameraReady = false
         bridge.setCameraStatus(ready: false, publishing: false)
         message = "Camera spenta"

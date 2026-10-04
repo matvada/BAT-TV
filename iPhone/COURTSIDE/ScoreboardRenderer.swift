@@ -5,6 +5,13 @@ final class ScoreboardRenderer {
     private let size = CGSize(width: 1280, height: 720)
     private let outputSize = CGSize(width: 1920, height: 1080)
     private let ink = UIColor.white
+    // The banner artwork already contains a high resolution logo. Use a tight
+    // crop so the lettering fills the small channel bug in the broadcast.
+    private lazy var channelLogo: UIImage? = {
+        guard let image = UIImage(named: "BATLogo")?.cgImage,
+              let crop = image.cropping(to: CGRect(x: 94, y: 65, width: 718, height: 718)) else { return nil }
+        return UIImage(cgImage: crop)
+    }()
 
     func image(for game: Game, at serverNow: Double) -> CGImage? {
         let format = UIGraphicsImageRendererFormat()
@@ -36,10 +43,11 @@ final class ScoreboardRenderer {
     }
 
     private func drawChannel(in cg: CGContext) {
-        let rect = CGRect(x: 1162, y: 82, width: 80, height: 80)
+        let rect = CGRect(x: 1132, y: 72, width: 110, height: 110)
         cg.saveGState()
-        UIBezierPath(roundedRect: rect, cornerRadius: 16).addClip()
-        UIImage(named: "BATLogo")?.draw(in: rect)
+        UIBezierPath(roundedRect: rect, cornerRadius: 18).addClip()
+        cg.interpolationQuality = .high
+        channelLogo?.draw(in: rect)
         cg.restoreGState()
     }
 

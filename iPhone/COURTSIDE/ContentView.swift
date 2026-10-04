@@ -180,6 +180,7 @@ struct BATHybridView: UIViewRepresentable {
                     await camera.stopCamera(); camera.bridge.stop(); role = selected
                     web?.scrollView.isScrollEnabled = selected != "camera"
                     emit(["type": "role", "role": selected, "pin": camera.bridge.pin])
+                    emit(["type": "quality", "height": camera.quality])
                     if selected == "camera" { camera.bridge.start() }
                     else if !selected.isEmpty { camera.bridge.startController() }
                 }
@@ -188,6 +189,15 @@ struct BATHybridView: UIViewRepresentable {
             case "pair": camera.bridge.sendCommand(object)
             case "cameraStart": Task { await camera.startCamera() }
             case "cameraStop": Task { await camera.stopCamera() }
+            case "cameraQuality":
+                guard role == "camera", let height = object["height"] as? Int else { return }
+                Task { await camera.setQuality(height); emit(["type": "quality", "height": camera.quality]) }
+            case "cameraFocus":
+                guard role == "camera", let x = object["x"] as? Double, let y = object["y"] as? Double else { return }
+                camera.focus(x: x, y: y)
+            case "cameraZoom":
+                guard role == "camera", let ratio = object["ratio"] as? Double else { return }
+                camera.zoom(by: ratio)
             case "facebookProducer":
                 guard role == "camera" else { return }
                 openFacebookProducer()
@@ -208,6 +218,7 @@ struct BATHybridView: UIViewRepresentable {
         }
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             emit(["type": "destination", "url": camera.serverURL, "key": camera.streamKey])
+            emit(["type": "quality", "height": camera.quality])
         }
         func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String, defaultText: String?, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (String?) -> Void) {
             let alert = UIAlertController(title: prompt, message: nil, preferredStyle: .alert)
