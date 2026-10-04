@@ -44,6 +44,7 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
         let now = Date().timeIntervalSince1970 * 1000
         if let data = UserDefaults.standard.data(forKey: "batLocalGame"), var saved = try? JSONDecoder().decode(Game.self, from: data) {
             saved.clock = Double(saved.remaining(at: now)); saved.running = false; saved.live = false
+            saved.overlay = ""; saved.overlayUntil = 0
             game = saved
         } else { game = .fresh(now: now) }
         super.init()
@@ -55,6 +56,8 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
     }
 
     func start() {
+        // A camera session begins with a clean graphic, while match scores remain.
+        if !game.overlay.isEmpty { game.overlay = ""; game.overlayUntil = 0; revision += 1; save() }
         isCamera = true
         wantsAdvertising = true
         if let manager {

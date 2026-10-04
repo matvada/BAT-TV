@@ -22,7 +22,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private boolean authenticated=false,ready=false,live=false;private int failedPins=0;private long lockUntil=0;
  private final Handler main=new Handler(Looper.getMainLooper());private final HashMap<String,Runnable> pending=new HashMap<>();
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-  game=new GameStore();String saved=getPreferences(0).getString("game",null);if(saved!=null)try{game.state=new JSONObject(saved);game.state.put("clock",game.remaining()).put("running",false).put("live",false);}catch(JSONException ignored){}
+  game=new GameStore();String saved=getPreferences(0).getString("game",null);if(saved!=null)try{game.state=new JSONObject(saved);game.state.put("clock",game.remaining()).put("running",false).put("live",false).put("overlay","").put("overlayUntil",0);}catch(JSONException ignored){}
   serverUrl=getPreferences(0).getString("server","");
   FrameLayout frame=new FrameLayout(this);preview=new OpenGlView(this);frame.addView(preview,new FrameLayout.LayoutParams(-1,-1));
   web=new WebView(this);web.setBackgroundColor(Color.TRANSPARENT);web.getSettings().setJavaScriptEnabled(true);web.getSettings().setAllowFileAccess(true);web.getSettings().setAllowFileAccessFromFileURLs(false);web.getSettings().setAllowUniversalAccessFromFileURLs(false);
@@ -98,6 +98,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);boolean all=true;for(int n:g)if(n!=PackageManager.PERMISSION_GRANTED)all=false;if(all)activateRole();else status("Consenti i permessi per usare Bluetooth e Camera");}
  private void setRole(String selected){if(live){status("Ferma prima la diretta per cambiare ruolo");return;}if(!Arrays.asList("camera","regia","scores","").contains(selected))return;
   stopCamera();link.close();authenticated=false;for(Runnable timeout:pending.values())main.removeCallbacks(timeout);pending.clear();role=selected;pin=String.format(Locale.US,"%06d",new java.security.SecureRandom().nextInt(1000000));
+  if(role.equals("camera")){try{game.state.put("overlay","").put("overlayUntil",0);getPreferences(0).edit().putString("game",game.state.toString()).apply();}catch(JSONException ignored){}}
   try{emit(new JSONObject().put("type","role").put("role",role).put("pin",pin));}catch(JSONException ignored){}
   if(!role.isEmpty()&&permissions(role.equals("camera")))activateRole();
  }
