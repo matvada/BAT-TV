@@ -138,7 +138,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void drawOverlay()throws JSONException{
   Bitmap b=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
-  if(s.optBoolean("showScore")){c.save();c.translate(0,35);p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(58,520,1222,604,14,14,p);p.setColor(teamColor(h.optString("color"),Color.rgb(81,42,125)));c.drawRect(58,520,65,604,p);p.setColor(teamColor(a.optString("color"),Color.rgb(255,254,15)));c.drawRect(1215,520,1222,604,p);label(c,p,h.optString("name"),86,571,24,Color.WHITE);label(c,p,""+h.optInt("score"),460,577,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,577,42,Color.WHITE);label(c,p,a.optString("name"),925,571,24,Color.WHITE);
+  if(s.optBoolean("showScore")){c.save();c.translate(0,35);p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(58,520,1222,604,14,14,p);p.setColor(teamColor(h.optString("color"),Color.rgb(81,42,125)));c.drawRect(58,520,65,604,p);p.setColor(teamColor(a.optString("color"),Color.rgb(255,254,15)));c.drawRect(1215,520,1222,604,p);label(c,p,h.optString("name"),86,571,24,Color.WHITE);drawFouls(c,p,h.optInt("fouls"),96,586);label(c,p,""+h.optInt("score"),460,577,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,577,42,Color.WHITE);label(c,p,a.optString("name"),925,571,24,Color.WHITE);drawFouls(c,p,a.optInt("fouls"),1062,586);
    String quarter=s.optInt("quarter")<=4?"Q"+s.optInt("quarter"):"OT"+(s.optInt("quarter")-4);
    if(s.optBoolean("clockEnabled",true)){int r=game.remaining();label(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),565,563,32,Color.rgb(255,254,15));label(c,p,quarter,612,592,18,Color.LTGRAY);}
    else{p.setTextAlign(Paint.Align.CENTER);label(c,p,quarter,640,584,58,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}c.restore();}
@@ -178,6 +178,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   label(c,p,"TUTTI INSIEME",640,380,26,Color.WHITE);p.setTextAlign(Paint.Align.LEFT);c.restore();
  }
  private void label(Canvas c,Paint p,String text,int x,int y,int size,int color){p.setTextSize(size);p.setColor(color);c.drawText(text,x,y,p);}
+ private void drawFouls(Canvas c,Paint p,int fouls,int x,int y){p.setStrokeWidth(1.5f);for(int i=0;i<5;i++){boolean active=i<fouls;p.setStyle(active?Paint.Style.FILL:Paint.Style.STROKE);p.setColor(active?(i==4?Color.RED:Color.rgb(255,254,15)):Color.argb(180,255,255,255));c.drawCircle(x+i*14,y,5,p);}p.setStyle(Paint.Style.FILL);}
  private int teamColor(String hex,int fallback){try{return hex.matches("#[0-9a-fA-F]{6}")?Color.parseColor(hex):fallback;}catch(Exception ignored){return fallback;}}
  public final class Bridge {
   @JavascriptInterface public void dispatch(String data){main.post(()->{try{JSONObject o=new JSONObject(data);String type=o.optString("type");

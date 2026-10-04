@@ -60,9 +60,11 @@ final class ScoreboardRenderer {
         drawLogo(game.home.logo, in: CGRect(x: 77, y: 600, width: 62, height: 62))
         drawLogo(game.away.logo, in: CGRect(x: 1141, y: 600, width: 62, height: 62))
         label(game.home.name.uppercased(), in: CGRect(x: 150, y: 603, width: 220, height: 57), size: 23, alignment: .left)
+        drawFouls(game.home.fouls, x: 160, y: 651, in: cg)
         label("\(game.home.score)", in: CGRect(x: 447, y: 603, width: 90, height: 57), size: 40)
         label("\(game.away.score)", in: CGRect(x: 743, y: 603, width: 90, height: 57), size: 40)
         label(game.away.name.uppercased(), in: CGRect(x: 899, y: 603, width: 230, height: 57), size: 23, alignment: .right)
+        drawFouls(game.away.fouls, x: 1062, y: 651, in: cg)
         let quarter = game.quarter <= 4 ? "Q\(game.quarter)" : "OT\(game.quarter - 4)"
         if game.clockEnabled {
             label(game.clockText(at: now), in: CGRect(x: 550, y: 597, width: 180, height: 40), size: 30, color: BATBrand.yellow)
@@ -71,6 +73,21 @@ final class ScoreboardRenderer {
             label(quarter, in: CGRect(x: 530, y: 591, width: 220, height: 80), size: 56, color: BATBrand.yellow)
         }
         cg.restoreGState()
+    }
+
+    private func drawFouls(_ fouls: Int, x: CGFloat, y: CGFloat, in cg: CGContext) {
+        for index in 0..<5 {
+            let circle = CGRect(x: x + CGFloat(index * 14) - 5, y: y - 5, width: 10, height: 10)
+            cg.addEllipse(in: circle)
+            if index < fouls {
+                cg.setFillColor((index == 4 ? UIColor.systemRed : BATBrand.yellow).cgColor)
+                cg.fillPath()
+            } else {
+                cg.setStrokeColor(UIColor.white.withAlphaComponent(0.7).cgColor)
+                cg.setLineWidth(1.5)
+                cg.strokePath()
+            }
+        }
     }
 
     private func drawKiss(in cg: CGContext) {

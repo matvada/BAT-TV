@@ -130,6 +130,7 @@ extension Game {
             clockEnabled = value == 1
         case "quarter":
             guard let value, (1...12).contains(value) else { return false }
+            if quarter != value { home.fouls = 0; away.fouls = 0 }
             quarter = value
         case "overlay":
             guard let text, ["", "kiss", "triple", "cheer", "break", "final", "caption"].contains(text) else { return false }
