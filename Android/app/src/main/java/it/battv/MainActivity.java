@@ -103,9 +103,9 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  }
  private void activateRole(){if(role.equals("camera")){link.host();try{emit(game.envelope(ready,live));}catch(JSONException ignored){}}else link.scan();}
  private void startCamera(){if(ready)return;if(!permissions(true))return;
-  try{camera=new RtmpCamera2(preview,this);if(!camera.prepareVideo(1280,720,30,2500000,0)||!camera.prepareAudio()){status("Camera o encoder non disponibile");camera=null;return;}
-   filter=new ImageObjectFilterRender();filter.setImage(Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888));filter.setScale(100,100);filter.setPosition(0,0);
-   camera.startPreview(CameraHelper.Facing.BACK,1280,720,0);camera.getGlInterface().setFilter(filter);ready=true;drawOverlay();status("Camera pronta · tieni aperta BAT tv");
+  try{camera=new RtmpCamera2(preview,this);if(!camera.prepareVideo(1920,1080,30,5000000,0)||!camera.prepareAudio()){status("Camera o encoder 1080p non disponibile");camera=null;return;}
+   filter=new ImageObjectFilterRender();filter.setImage(Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888));filter.setScale(100,100);filter.setPosition(0,0);
+   camera.startPreview(CameraHelper.Facing.BACK,1920,1080,0);camera.getGlInterface().setFilter(filter);ready=true;drawOverlay();status("Camera pronta · tieni aperta BAT tv");
   }catch(Exception e){stopCamera();status("Camera: "+e.getMessage());}}
  private void stopCamera(){endLive();if(camera!=null){camera.stopPreview();camera=null;}ready=false;filter=null;}
  private void beginLive(){if(!role.equals("camera")||!ready||camera==null){status("Attiva prima la Camera");return;}if(live||camera.isStreaming())return;
@@ -113,7 +113,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   camera.startStream(serverUrl.replaceAll("/+$","")+"/"+streamKey.trim());status("Collegamento a Facebook…");}
  private void endLive(){if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;}
  private void drawOverlay()throws JSONException{
-  Bitmap b=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
+  Bitmap b=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
   if(s.optBoolean("showScore")){p.setColor(Color.argb(245,81,42,125));c.drawRoundRect(58,520,1222,604,14,14,p);label(c,p,h.optString("name"),86,571,24,Color.WHITE);label(c,p,""+h.optInt("score"),460,577,42,Color.WHITE);label(c,p,""+a.optInt("score"),760,577,42,Color.WHITE);label(c,p,a.optString("name"),925,571,24,Color.WHITE);
    String quarter=s.optInt("quarter")<=4?"Q"+s.optInt("quarter"):"OT"+(s.optInt("quarter")-4);

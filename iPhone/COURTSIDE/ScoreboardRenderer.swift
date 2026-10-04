@@ -3,14 +3,16 @@ import UIKit
 @MainActor
 final class ScoreboardRenderer {
     private let size = CGSize(width: 1280, height: 720)
+    private let outputSize = CGSize(width: 1920, height: 1080)
     private let ink = UIColor.white
 
     func image(for game: Game, at serverNow: Double) -> CGImage? {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = false
-        let image = UIGraphicsImageRenderer(size: size, format: format).image { context in
+        let image = UIGraphicsImageRenderer(size: outputSize, format: format).image { context in
             let cg = context.cgContext
+            cg.scaleBy(x: outputSize.width / size.width, y: outputSize.height / size.height)
             if game.showScore { drawScore(game, at: serverNow, in: cg) }
             switch game.visibleOverlay(at: serverNow) {
             case "kiss": drawKiss(in: cg)

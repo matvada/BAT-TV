@@ -13,7 +13,7 @@ final class OverlayStage {
 
     func install(on mixer: MediaMixer) {
         let image = ImageScreenObject()
-        image.size = CGSize(width: 1280, height: 720)
+        image.size = CGSize(width: 1920, height: 1080)
         image.horizontalAlignment = .left
         image.verticalAlignment = .top
         try? mixer.screen.addChild(image)
@@ -99,13 +99,16 @@ final class CameraEngine: ObservableObject {
             try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .videoRecording, options: [.defaultToSpeaker, .allowBluetooth])
             try AVAudioSession.sharedInstance().setActive(true)
             var videoSettings = await stream.videoSettings
-            videoSettings.videoSize = CGSize(width: 1280, height: 720)
-            videoSettings.bitRate = 2_500_000
-            videoSettings.profileLevel = kVTProfileLevel_H264_Baseline_AutoLevel as String
+            videoSettings.videoSize = CGSize(width: 1920, height: 1080)
+            videoSettings.bitRate = 5_000_000
+            videoSettings.expectedFrameRate = 30
+            videoSettings.maxKeyFrameIntervalDuration = 2
+            videoSettings.profileLevel = kVTProfileLevel_H264_High_AutoLevel as String
             try await stream.setVideoSettings(videoSettings)
             var mixerSettings = await mixer.videoMixerSettings
             mixerSettings.mode = .offscreen
             await mixer.setVideoMixerSettings(mixerSettings)
+            await mixer.setSessionPreset(.hd1920x1080)
             await mixer.setVideoOrientation(captureOrientation())
             try await mixer.attachVideo(video)
             try await mixer.attachAudio(microphone)
