@@ -8,7 +8,7 @@ body.cameraMode header,body.cameraMode footer{display:none}
 body.cameraMode main{padding:0}
 body.cameraMode #cameraPane{position:fixed;inset:0;display:block;overflow:hidden}
 body.cameraMode #videoArea{position:absolute;inset:0;width:100%;height:100%;min-height:0;border:0;border-radius:0}
-body.cameraMode #cameraControls{position:fixed;top:12px;right:12px;bottom:12px;z-index:4;width:min(360px,calc(100vw - 24px));margin:0;overflow-y:auto;overscroll-behavior:contain;background:rgba(26,15,38,.96)}
+body.cameraMode #cameraControls{position:fixed;top:8px;right:8px;bottom:8px;z-index:4;width:min(490px,calc(100vw - 16px));margin:0;overflow:hidden;background:rgba(26,15,38,.96)}
 body.cameraMode.cameraClean #showCameraControls{position:fixed;top:16px;right:16px;z-index:10;opacity:.9}
 body.roleChooser footer{display:none}
 body.roleChooser #chooser{position:fixed;inset:74px 0 0;width:100%;max-width:none;margin:0;padding:clamp(8px,2vw,24px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:12px;overflow:hidden}
@@ -31,6 +31,12 @@ body.cameraMode.cameraClean #cameraControls{display:flex;transform:translateX(ca
 #cameraControls .drawerPage input{margin-bottom:6px}
 #cameraControls .drawerPage .row{margin:6px 0}
 #cameraControls .drawerRoles{flex:none;margin-top:6px}
+body.cameraMode #cameraControls .drawerPage[data-camera-page="live"]{display:flex;flex-direction:column;gap:5px}
+#cameraControls .drawerPage[data-camera-page="live"] h3,#cameraControls .drawerPage[data-camera-page="live"] p{margin:0}
+#cameraControls .drawerPage[data-camera-page="live"] .liveFields{display:grid;grid-template-columns:1fr 1fr;gap:6px;min-width:0}
+#cameraControls .drawerPage[data-camera-page="live"] .liveFields input{min-width:0;margin:0}
+#cameraControls .drawerPage[data-camera-page="live"] .liveActions{display:grid;grid-template-columns:1.4fr .7fr 1fr;gap:6px}
+#cameraControls .drawerPage[data-camera-page="live"] .liveActions button{min-width:0;padding:5px 3px;font-size:12px}
 body.cameraMode #cameraControls button,body.cameraMode #cameraControls input{min-height:34px;padding:7px}
 body.cameraMode #pinLabel{font-size:clamp(30px,6vh,42px)}
 body.cameraMode.cameraClean #showCameraControls{display:block}
@@ -76,7 +82,7 @@ body.cameraMode.cameraClean:not(.cameraActive) #showCameraControls{background:ur
  <div class="drawerTabs"><button data-camera-tab="link" onclick="cameraTab('link')">Collega</button><button data-camera-tab="camera" onclick="cameraTab('camera')">Camera</button><button data-camera-tab="live" onclick="cameraTab('live')">Diretta</button></div>
  <div class="drawerPage" data-camera-page="link"><h3>CODICE BLUETOOTH</h3><div id="pinLabel"></div><p class="small">Inserisci il codice su Regia o Punteggi. Conferma l’abbinamento se richiesto.</p></div>
  <div class="drawerPage hidden" data-camera-page="camera"><h3>RIPRESA</h3><div class="row"><button class="primary" onclick="dispatch({type:'cameraStart'})">Attiva Camera</button><button onclick="dispatch({type:'cameraStop'})">Ferma</button></div><p class="small">Tieni l’app aperta e il telefono in orizzontale.</p></div>
- <div class="drawerPage hidden" data-camera-page="live"><h3>FACEBOOK LIVE</h3><button class="primary" onclick="dispatch({type:'facebookProducer'})">Apri Facebook · configura e pubblica</button><p class="small">Sul telefono Camera: scegli il gruppo e Software di streaming. Copia URL e chiave persistente; poi avvia l’invio e premi Trasmetti in diretta su Facebook.</p><input id="url" placeholder="Indirizzo RTMPS" autocomplete="off"><input id="key" type="password" placeholder="Chiave della diretta" autocomplete="off"><button onclick="dispatch({type:'destination',url:el('url').value,key:el('key').value})">Salva destinazione</button><div class="row"><button class="primary" onclick="batAction('liveStart')">Invia</button><button class="danger" onclick="batAction('liveStop')">Ferma invio</button></div></div>
+ <div class="drawerPage hidden" data-camera-page="live"><h3>FACEBOOK LIVE</h3><button class="primary" onclick="dispatch({type:'facebookProducer'})">Apri Facebook · configura e pubblica</button><p class="small">Scegli il gruppo, copia URL e chiave persistente. Dopo l’invio, conferma la diretta su Facebook.</p><div class="liveFields"><input id="url" placeholder="Indirizzo RTMPS" autocomplete="off"><input id="key" type="password" placeholder="Chiave della diretta" autocomplete="off"></div><div class="liveActions"><button onclick="dispatch({type:'destination',url:el('url').value,key:el('key').value})">Salva destinazione</button><button class="primary" onclick="batAction('liveStart')">Invia</button><button class="danger" onclick="batAction('liveStop')">Ferma invio</button></div></div>
  <button class="drawerRoles" onclick="dispatch({type:'role',role:''})">Cambia ruolo</button>
 </aside></div>
 <div id="connection" class="connection hidden"><div class="panel"><h3>ABBINA LA CAMERA</h3><button onclick="devices=[];devicePage=0;showDevices();dispatch({type:'scan'})">Cerca via Bluetooth</button><div id="devices"></div><div class="row"><input id="pin" inputmode="numeric" maxlength="6" placeholder="Codice a 6 cifre sulla Camera"><button class="primary" onclick="dispatch({type:'pair',pin:el('pin').value})">Abbina</button></div><p class="small">Nessun account. Bluetooth attivo su entrambi. L’anteprima video resta sul dispositivo Camera.</p></div></div>
