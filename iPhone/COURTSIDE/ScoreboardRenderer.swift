@@ -51,7 +51,7 @@ final class ScoreboardRenderer {
     }
 
     private func drawChannel(in cg: CGContext) {
-        let rect = CGRect(x: 1158, y: 72, width: 84, height: 84)
+        let rect = CGRect(x: 1168, y: 82, width: 64, height: 64)
         cg.saveGState()
         UIBezierPath(roundedRect: rect, cornerRadius: 15).addClip()
         cg.interpolationQuality = .high
@@ -62,7 +62,7 @@ final class ScoreboardRenderer {
     private func drawScore(_ game: Game, at now: Double, in cg: CGContext) {
         cg.saveGState()
         cg.translateBy(x: 0, y: -21)
-        let bar = CGRect(x: 190, y: 590, width: 900, height: 84)
+        let bar = CGRect(x: 190, y: 600, width: 900, height: 64)
         if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
                                      colors: [UIColor(red: 86/255, green: 49/255, blue: 136/255, alpha: 0.96).cgColor,
                                               UIColor(red: 73/255, green: 37/255, blue: 118/255, alpha: 0.96).cgColor] as CFArray,
@@ -77,20 +77,20 @@ final class ScoreboardRenderer {
         cg.clip(to: bar)
         scoreWatermark?.draw(in: CGRect(x: 416, y: 521, width: 448, height: 270), blendMode: .multiply, alpha: 0.14)
         cg.restoreGState()
-        fill(CGRect(x: 190, y: 590, width: 7, height: 84), color(game.home.color), in: cg)
-        fill(CGRect(x: 1083, y: 590, width: 7, height: 84), color(game.away.color), in: cg)
-        label(String(game.home.name.prefix(3)).uppercased(), in: CGRect(x: 198, y: 612, width: 100, height: 49), size: 31)
+        fill(CGRect(x: 190, y: 600, width: 7, height: 64), color(game.home.color), in: cg)
+        fill(CGRect(x: 1083, y: 600, width: 7, height: 64), color(game.away.color), in: cg)
+        label(String(game.home.name.prefix(3)).uppercased(), in: CGRect(x: 198, y: 608, width: 100, height: 49), size: 31)
         drawFouls(game.home.fouls, x: 327, y: 632, in: cg)
-        label("\(game.home.score)", in: CGRect(x: 421, y: 600, width: 118, height: 70), size: 52)
-        label("\(game.away.score)", in: CGRect(x: 741, y: 600, width: 118, height: 70), size: 52)
+        label("\(game.home.score)", in: CGRect(x: 421, y: 595, width: 118, height: 70), size: 52)
+        label("\(game.away.score)", in: CGRect(x: 741, y: 595, width: 118, height: 70), size: 52)
         drawFouls(game.away.fouls, x: 897, y: 632, in: cg)
-        label(String(game.away.name.prefix(3)).uppercased(), in: CGRect(x: 982, y: 612, width: 100, height: 49), size: 31)
+        label(String(game.away.name.prefix(3)).uppercased(), in: CGRect(x: 982, y: 608, width: 100, height: 49), size: 31)
         let quarter = game.quarter <= 4 ? "Q\(game.quarter)" : "OT\(game.quarter - 4)"
         if game.clockEnabled {
-            label(game.clockText(at: now), in: CGRect(x: 550, y: 597, width: 180, height: 40), size: 30, color: BATBrand.yellow)
-            label(quarter, in: CGRect(x: 550, y: 636, width: 180, height: 26), size: 16, color: .lightGray)
+            label(game.clockText(at: now), in: CGRect(x: 550, y: 598, width: 180, height: 40), size: 30, color: BATBrand.yellow)
+            label(quarter, in: CGRect(x: 550, y: 633, width: 180, height: 26), size: 16, color: .lightGray)
         } else {
-            label(quarter, in: CGRect(x: 530, y: 591, width: 220, height: 80), size: 56, color: BATBrand.yellow)
+            label(quarter, in: CGRect(x: 530, y: 592, width: 220, height: 80), size: 56, color: BATBrand.yellow)
         }
         cg.restoreGState()
     }
