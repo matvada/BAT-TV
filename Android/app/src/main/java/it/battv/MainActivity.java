@@ -142,7 +142,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void drawOverlay()throws JSONException{
   Bitmap b=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
-  if(s.optBoolean("showScore")){c.save();c.translate(0,112);p.setColor(Color.WHITE);p.setShader(new LinearGradient(0,529,0,593,Color.argb(245,86,49,136),Color.argb(245,73,37,118),Shader.TileMode.CLAMP));c.drawRect(190,529,1090,593,p);p.setShader(null);
+  if(s.optBoolean("showScore")){c.save();c.translate(0,49);p.setColor(Color.WHITE);p.setShader(new LinearGradient(0,529,0,593,Color.argb(245,86,49,136),Color.argb(245,73,37,118),Shader.TileMode.CLAMP));c.drawRect(190,529,1090,593,p);p.setShader(null);
    if(scoreWatermark!=null){c.save();c.clipRect(190,529,1090,593);p.setAlpha(36);p.setFilterBitmap(true);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));c.drawBitmap(scoreWatermark,new Rect(0,0,scoreWatermark.getWidth(),Math.min(960,scoreWatermark.getHeight())),new Rect(416,451,864,721),p);p.setXfermode(null);p.setAlpha(255);c.restore();}
    p.setColor(teamColor(h.optString("color"),Color.rgb(81,42,125)));c.drawRect(190,529,197,593,p);p.setColor(teamColor(a.optString("color"),Color.rgb(255,254,15)));c.drawRect(1083,529,1090,593,p);
    p.setTextAlign(Paint.Align.CENTER);
@@ -157,7 +157,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   else if(overlay.equals("cheer"))drawCheer(c,p,System.currentTimeMillis(),s.optDouble("overlayUntil"));
   else if(overlay.equals("break")||overlay.equals("final")){p.setColor(Color.argb(230,81,42,125));c.drawRect(0,0,1280,720,p);p.setColor(Color.argb(85,0,0,0));c.drawRoundRect(170,205,1110,465,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(170,205,180,465,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,overlay.equals("final")?"FINE PARTITA":"INTERVALLO",640,327,76,Color.WHITE);label(c,p,h.optString("name")+"  "+h.optInt("score")+" – "+a.optInt("score")+"  "+a.optString("name"),640,409,38,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
   else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,400,1222,490,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(58,400,67,490,p);label(c,p,s.optString("caption"),86,461,36,Color.WHITE);}
-  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();Path logoClip=new Path();logoClip.addRoundRect(1168,31,1232,95,12,12,Path.Direction.CW);c.clipPath(logoClip);c.drawBitmap(logo,new Rect(106,80,918,892),new Rect(1168,31,1232,95),p);c.restore();
+  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();Path logoClip=new Path();logoClip.addRoundRect(1168,82,1232,146,12,12,Path.Direction.CW);c.clipPath(logoClip);c.drawBitmap(logo,new Rect(106,80,918,892),new Rect(1168,82,1232,146),p);c.restore();
   if(filter!=null)filter.setImage(b);
  }
  private void drawTriple(Canvas c,Paint p,long now){

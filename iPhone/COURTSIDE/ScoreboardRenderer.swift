@@ -51,7 +51,7 @@ final class ScoreboardRenderer {
     }
 
     private func drawChannel(in cg: CGContext) {
-        let rect = CGRect(x: 1168, y: 31, width: 64, height: 64)
+        let rect = CGRect(x: 1168, y: 82, width: 64, height: 64)
         cg.saveGState()
         UIBezierPath(roundedRect: rect, cornerRadius: 15).addClip()
         cg.interpolationQuality = .high
@@ -61,7 +61,7 @@ final class ScoreboardRenderer {
 
     private func drawScore(_ game: Game, at now: Double, in cg: CGContext) {
         cg.saveGState()
-        cg.translateBy(x: 0, y: 42)
+        cg.translateBy(x: 0, y: -21)
         let bar = CGRect(x: 190, y: 600, width: 900, height: 64)
         if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
                                      colors: [UIColor(red: 86/255, green: 49/255, blue: 136/255, alpha: 0.96).cgColor,
