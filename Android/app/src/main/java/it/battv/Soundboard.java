@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /** Mix short 32 kHz mono PCM cues into the microphone before AAC encoding. */
-final class Soundboard implements CustomAudioEffect {
+final class Soundboard extends CustomAudioEffect {
  private final Map<String,byte[]> cues=new HashMap<>();
  private byte[] current;
  private int offset;
