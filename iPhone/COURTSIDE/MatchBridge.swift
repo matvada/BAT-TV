@@ -14,6 +14,7 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
     @Published private(set) var game: Game
     @Published private(set) var linked = false
     var onLiveCommand: ((Bool) -> Void)?
+    var onSoundCommand: ((String) -> Bool)?
     var onEvent: (([String: Any]) -> Void)?
     private var browser: CBCentralManager?
     private var remote: CBPeripheral?
@@ -204,6 +205,8 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
         var accepted = true
         if action == "liveStart" || action == "liveStop" {
             onLiveCommand?(action == "liveStart")
+        } else if action == "sound" {
+            accepted = onSoundCommand?(object["text"] as? String ?? "") ?? false
         } else if action == "undo" {
             if var previous = history.popLast() {
                 previous.clock = Double(previous.remaining(at: now())); previous.running = false; previous.live = publishing

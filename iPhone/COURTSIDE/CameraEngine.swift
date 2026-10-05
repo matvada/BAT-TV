@@ -1,5 +1,6 @@
 import AVFoundation
 import Combine
+import CoreMedia
 import HaishinKit
 import RTMPHaishinKit
 import SwiftUI
@@ -90,7 +91,8 @@ final class CameraEngine: ObservableObject {
     let bridge = MatchBridge()
     let preview = MTHKView(frame: .zero)
 
-    private let mixer = MediaMixer()
+    private let mixer = MediaMixer(multiTrackAudioMixingEnabled: true)
+    private var soundTask: Task<Void, Never>?
     // Facebook can take longer than HaishinKit's 3-second default to acknowledge publish.
     private let connection = RTMPConnection(requestTimeout: 15_000)
     private lazy var stream = RTMPStream(connection: connection)
@@ -118,6 +120,7 @@ final class CameraEngine: ObservableObject {
         bridge.onLiveCommand = { [weak self] start in
             Task { @MainActor in if start { await self?.beginLive() } else { await self?.endLive() } }
         }
+        bridge.onSoundCommand = { [weak self] name in self?.playSound(name) ?? false }
     }
 
     func configureDestination() {
@@ -214,6 +217,9 @@ final class CameraEngine: ObservableObject {
             await mixer.setVideoOrientation(captureOrientation())
             try await mixer.attachVideo(video)
             try await mixer.attachAudio(microphone)
+            var audioMix = await mixer.audioMixerSettings
+            audioMix.tracks[1] = .default
+            await mixer.setAudioMixerSettings(audioMix)
             await mixer.addOutput(stream)
             await stream.addOutput(preview)
             await OverlayStage.shared.install(on: mixer)
@@ -236,6 +242,7 @@ final class CameraEngine: ObservableObject {
     }
 
     func stopCamera() async {
+        soundTask?.cancel()
         await endLive()
         clock?.cancel()
         await mixer.stopRunning()
@@ -292,6 +299,7 @@ final class CameraEngine: ObservableObject {
     }
 
     func endLive() async {
+        soundTask?.cancel()
         guard publishing || connecting else { return }
         let finishedMatch = publishing
         streamGeneration += 1
@@ -302,6 +310,53 @@ final class CameraEngine: ObservableObject {
         bridge.setCameraStatus(ready: cameraReady, publishing: false)
         if finishedMatch { bridge.finishMatch() }
         message = "Invio video fermato"
+    }
+
+    private func playSound(_ name: String) -> Bool {
+        guard publishing, ["horn", "crowd", "drums"].contains(name),
+              let url = Bundle.main.url(forResource: name, withExtension: "wav", subdirectory: "BATWeb"),
+              let data = try? Data(contentsOf: url), data.count > 44 else { return false }
+        let pcm = Data(data.dropFirst(44))
+        soundTask?.cancel()
+        soundTask = Task { [weak self] in
+            guard let self,
+                  let format = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: 32_000,
+                                             channels: 1, interleaved: true) else { return }
+            var description: CMAudioFormatDescription?
+            var asbd = format.streamDescription.pointee
+            guard CMAudioFormatDescriptionCreate(allocator: kCFAllocatorDefault,
+                                                 asbd: &asbd, layoutSize: 0, layout: nil,
+                                                 magicCookieSize: 0, magicCookie: nil,
+                                                 extensions: nil, formatDescriptionOut: &description) == noErr,
+                  let description else { return }
+            let bytesPerChunk = 640 * 2 // 20 ms at 32 kHz, 16-bit mono.
+            for offset in stride(from: 0, to: pcm.count - 1, by: bytesPerChunk) {
+                if Task.isCancelled || !self.publishing { break }
+                let chunk = Data(pcm[offset..<min(offset + bytesPerChunk, pcm.count)])
+                let frames = chunk.count / 2
+                var block: CMBlockBuffer?
+                guard CMBlockBufferCreateWithMemoryBlock(allocator: kCFAllocatorDefault,
+                    memoryBlock: nil, blockLength: frames * 2, blockAllocator: kCFAllocatorDefault,
+                    customBlockSource: nil, offsetToData: 0, dataLength: frames * 2,
+                    flags: 0, blockBufferOut: &block) == noErr, let block,
+                    chunk.withUnsafeBytes({ ptr in
+                        CMBlockBufferReplaceDataBytes(with: ptr.baseAddress!, blockBuffer: block,
+                                                      offsetIntoDestination: 0, dataLength: frames * 2)
+                    }) == noErr else { break }
+                var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: 32_000),
+                                                presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
+                                                decodeTimeStamp: .invalid)
+                var sample: CMSampleBuffer?
+                var size = 2
+                guard CMSampleBufferCreateReady(allocator: kCFAllocatorDefault, dataBuffer: block,
+                    formatDescription: description, sampleCount: frames, sampleTimingEntryCount: 1,
+                    sampleTimingArray: &timing, sampleSizeEntryCount: 1, sampleSizeArray: &size,
+                    sampleBufferOut: &sample) == noErr, let sample else { break }
+                await self.mixer.append(sample, track: 1)
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+        }
+        return true
     }
 
     private func serverNow() -> Double { Date().timeIntervalSince1970 * 1000 + serverOffset }

@@ -17,7 +17,7 @@ import org.json.*;
 import java.util.*;
 
 public final class MainActivity extends Activity implements BleLink.Events,ConnectChecker {
- private WebView web;private OpenGlView preview;private RtmpCamera2 camera;private ImageObjectFilterRender filter;private Bitmap logo,scoreWatermark;
+ private WebView web;private OpenGlView preview;private RtmpCamera2 camera;private ImageObjectFilterRender filter;private Bitmap logo,scoreWatermark;private Soundboard soundboard;
  private int videoHeight=1080;
  private BleLink link;private GameStore game;private String role="",pin="",serverUrl="",streamKey="";
  private boolean authenticated=false,ready=false,live=false;private int failedPins=0;private long lockUntil=0;
@@ -87,6 +87,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void apply(JSONObject o,boolean remote)throws JSONException{
   String a=o.optString("action");boolean accepted;
   if(a.equals("liveStart")||a.equals("liveStop")){if(a.equals("liveStart"))beginLive();else endLive();accepted=true;}
+  else if(a.equals("sound")){accepted=ready&&live&&soundboard!=null&&soundboard.play(o.optString("text"));if(!accepted)status("Avvia la diretta prima di usare i suoni");}
   else accepted=game.apply(o);
   if(!accepted){if(remote)link.send(new JSONObject().put("type","error").put("message","Comando non valido"));return;}
   getPreferences(0).edit().putString("game",game.state.toString()).apply();
@@ -127,20 +128,21 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void startCamera(){if(ready)return;if(!permissions(true))return;
   int width=videoHeight==480?854:videoHeight==720?1280:1920;
   int bitRate=videoHeight==480?900000:videoHeight==720?1800000:3000000;
-  try{camera=new RtmpCamera2(preview,this);if(!camera.prepareVideo(width,videoHeight,30,bitRate,0)||!camera.prepareAudio()){status("Camera o encoder "+videoHeight+"p non disponibile");camera=null;return;}
+  try{camera=new RtmpCamera2(preview,this);if(!camera.prepareVideo(width,videoHeight,30,bitRate,0)||!camera.prepareAudio(64*1024,32000,false,false,false)){status("Camera o encoder "+videoHeight+"p non disponibile");camera=null;return;}
+   soundboard=new Soundboard(getAssets());camera.setCustomAudioEffect(soundboard);
    filter=new ImageObjectFilterRender();filter.setImage(Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888));filter.setScale(100,100);filter.setPosition(0,0);
    camera.startPreview(CameraHelper.Facing.BACK,width,videoHeight,0);camera.getGlInterface().setFilter(filter);ready=true;drawOverlay();status("Camera "+videoHeight+"p pronta · tocca per il fuoco, pizzica per lo zoom");
   }catch(Exception e){stopCamera();status("Camera: "+e.getMessage());}}
- private void stopCamera(){endLive();if(camera!=null){camera.stopPreview();camera=null;}ready=false;filter=null;}
+ private void stopCamera(){endLive();if(soundboard!=null)soundboard.stop();if(camera!=null){camera.stopPreview();camera=null;}ready=false;filter=null;soundboard=null;}
  private void beginLive(){if(!role.equals("camera")||!ready||camera==null){status("Attiva prima la Camera");return;}if(live||camera.isStreaming())return;
   if(!serverUrl.startsWith("rtmps://")||streamKey.trim().isEmpty()){status("Imposta indirizzo RTMPS e chiave Facebook sulla Camera");return;}
   camera.startStream(serverUrl.replaceAll("/+$","")+"/"+streamKey.trim());status("Collegamento a Facebook…");}
- private void endLive(){boolean finished=live;if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;if(finished){game=new GameStore();getPreferences(0).edit().putBoolean("matchInProgress",false).remove("game").apply();try{emit(game.envelope(ready,false));}catch(JSONException ignored){}}}
+ private void endLive(){boolean finished=live;if(soundboard!=null)soundboard.stop();if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;if(finished){game=new GameStore();getPreferences(0).edit().putBoolean("matchInProgress",false).remove("game").apply();try{emit(game.envelope(ready,false));}catch(JSONException ignored){}}}
  private void abortLive(){if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;}
  private void drawOverlay()throws JSONException{
   Bitmap b=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
-  if(s.optBoolean("showScore")){c.save();c.translate(0,49);p.setColor(Color.WHITE);p.setShader(new LinearGradient(0,529,0,593,Color.argb(245,86,49,136),Color.argb(245,73,37,118),Shader.TileMode.CLAMP));c.drawRect(190,529,1090,593,p);p.setShader(null);
+  if(s.optBoolean("showScore")){c.save();c.translate(0,112);p.setColor(Color.WHITE);p.setShader(new LinearGradient(0,529,0,593,Color.argb(245,86,49,136),Color.argb(245,73,37,118),Shader.TileMode.CLAMP));c.drawRect(190,529,1090,593,p);p.setShader(null);
    if(scoreWatermark!=null){c.save();c.clipRect(190,529,1090,593);p.setAlpha(36);p.setFilterBitmap(true);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));c.drawBitmap(scoreWatermark,new Rect(0,0,scoreWatermark.getWidth(),Math.min(960,scoreWatermark.getHeight())),new Rect(416,451,864,721),p);p.setXfermode(null);p.setAlpha(255);c.restore();}
    p.setColor(teamColor(h.optString("color"),Color.rgb(81,42,125)));c.drawRect(190,529,197,593,p);p.setColor(teamColor(a.optString("color"),Color.rgb(255,254,15)));c.drawRect(1083,529,1090,593,p);
    p.setTextAlign(Paint.Align.CENTER);
@@ -155,7 +157,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   else if(overlay.equals("cheer"))drawCheer(c,p,System.currentTimeMillis(),s.optDouble("overlayUntil"));
   else if(overlay.equals("break")||overlay.equals("final")){p.setColor(Color.argb(230,81,42,125));c.drawRect(0,0,1280,720,p);p.setColor(Color.argb(85,0,0,0));c.drawRoundRect(170,205,1110,465,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(170,205,180,465,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,overlay.equals("final")?"FINE PARTITA":"INTERVALLO",640,327,76,Color.WHITE);label(c,p,h.optString("name")+"  "+h.optInt("score")+" – "+a.optInt("score")+"  "+a.optString("name"),640,409,38,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
   else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,400,1222,490,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(58,400,67,490,p);label(c,p,s.optString("caption"),86,461,36,Color.WHITE);}
-  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();Path logoClip=new Path();logoClip.addRoundRect(1168,82,1232,146,12,12,Path.Direction.CW);c.clipPath(logoClip);c.drawBitmap(logo,new Rect(106,80,918,892),new Rect(1168,82,1232,146),p);c.restore();
+  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();Path logoClip=new Path();logoClip.addRoundRect(1168,31,1232,95,12,12,Path.Direction.CW);c.clipPath(logoClip);c.drawBitmap(logo,new Rect(106,80,918,892),new Rect(1168,31,1232,95),p);c.restore();
   if(filter!=null)filter.setImage(b);
  }
  private void drawTriple(Canvas c,Paint p,long now){
