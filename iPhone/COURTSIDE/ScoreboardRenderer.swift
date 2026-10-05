@@ -79,18 +79,23 @@ final class ScoreboardRenderer {
         cg.restoreGState()
         fill(CGRect(x: 190, y: 600, width: 7, height: 64), color(game.home.color), in: cg)
         fill(CGRect(x: 1083, y: 600, width: 7, height: 64), color(game.away.color), in: cg)
-        label(String(game.home.name.prefix(3)).uppercased(), in: CGRect(x: 198, y: 608, width: 100, height: 49), size: 31)
-        drawFouls(game.home.fouls, x: 327, y: 632, in: cg)
-        label("\(game.home.score)", in: CGRect(x: 421, y: 595, width: 118, height: 70), size: 52)
-        label("\(game.away.score)", in: CGRect(x: 741, y: 595, width: 118, height: 70), size: 52)
-        drawFouls(game.away.fouls, x: 897, y: 632, in: cg)
-        label(String(game.away.name.prefix(3)).uppercased(), in: CGRect(x: 982, y: 608, width: 100, height: 49), size: 31)
+        // Score content follows the bar centre. Never give it independent vertical coordinates.
+        let centerY = bar.midY
+        scoreLabel(String(game.home.name.prefix(3)).uppercased(), x: 198, width: 100, centerY: centerY, size: 31)
+        drawFouls(game.home.fouls, x: 327, y: centerY, in: cg)
+        scoreLabel("\(game.home.score)", x: 421, width: 118, centerY: centerY, size: 52)
+        scoreLabel("\(game.away.score)", x: 741, width: 118, centerY: centerY, size: 52)
+        drawFouls(game.away.fouls, x: 897, y: centerY, in: cg)
+        scoreLabel(String(game.away.name.prefix(3)).uppercased(), x: 982, width: 100, centerY: centerY, size: 31)
         let quarter = game.quarter <= 4 ? "Q\(game.quarter)" : "OT\(game.quarter - 4)"
         if game.clockEnabled {
-            label(game.clockText(at: now), in: CGRect(x: 550, y: 598, width: 180, height: 40), size: 30, color: BATBrand.yellow)
-            label(quarter, in: CGRect(x: 550, y: 633, width: 180, height: 26), size: 16, color: .lightGray)
+            let clockHeight = UIFont.systemFont(ofSize: 30, weight: .heavy).lineHeight
+            let quarterHeight = UIFont.systemFont(ofSize: 16, weight: .heavy).lineHeight
+            let top = centerY - (clockHeight + quarterHeight) / 2
+            label(game.clockText(at: now), in: CGRect(x: 550, y: top, width: 180, height: clockHeight), size: 30, color: BATBrand.yellow)
+            label(quarter, in: CGRect(x: 550, y: top + clockHeight, width: 180, height: quarterHeight), size: 16, color: .lightGray)
         } else {
-            label(quarter, in: CGRect(x: 530, y: 592, width: 220, height: 80), size: 56, color: BATBrand.yellow)
+            scoreLabel(quarter, x: 530, width: 220, centerY: centerY, size: 50, color: BATBrand.yellow)
         }
         cg.restoreGState()
     }
@@ -108,6 +113,13 @@ final class ScoreboardRenderer {
                 cg.strokePath()
             }
         }
+    }
+
+    private func scoreLabel(_ title: String, x: CGFloat, width: CGFloat, centerY: CGFloat,
+                            size: CGFloat, color: UIColor? = nil) {
+        let height = UIFont.systemFont(ofSize: size, weight: .heavy).lineHeight
+        label(title, in: CGRect(x: x, y: centerY - height / 2, width: width, height: height),
+              size: size, color: color)
     }
 
     private func drawKiss(in cg: CGContext) {

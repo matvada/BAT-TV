@@ -146,10 +146,14 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
    if(scoreWatermark!=null){c.save();c.clipRect(190,529,1090,593);p.setAlpha(36);p.setFilterBitmap(true);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));c.drawBitmap(scoreWatermark,new Rect(0,0,scoreWatermark.getWidth(),Math.min(960,scoreWatermark.getHeight())),new Rect(416,451,864,721),p);p.setXfermode(null);p.setAlpha(255);c.restore();}
    p.setColor(teamColor(h.optString("color"),Color.rgb(81,42,125)));c.drawRect(190,529,197,593,p);p.setColor(teamColor(a.optString("color"),Color.rgb(255,254,15)));c.drawRect(1083,529,1090,593,p);
    p.setTextAlign(Paint.Align.CENTER);
-   label(c,p,h.optString("name").substring(0,Math.min(3,h.optString("name").length())).toUpperCase(Locale.ROOT),248,573,31,Color.WHITE);drawFouls(c,p,h.optInt("fouls"),327,562);label(c,p,""+h.optInt("score"),480,580,52,Color.WHITE);label(c,p,""+a.optInt("score"),800,580,52,Color.WHITE);drawFouls(c,p,a.optInt("fouls"),897,562);label(c,p,a.optString("name").substring(0,Math.min(3,a.optString("name").length())).toUpperCase(Locale.ROOT),1032,573,31,Color.WHITE);
+   // Keep every score element tied to the bar centre when its height changes.
+   float centerY=(529f+593f)/2f;
+   scoreLabel(c,p,h.optString("name").substring(0,Math.min(3,h.optString("name").length())).toUpperCase(Locale.ROOT),248,centerY,31,Color.WHITE);drawFouls(c,p,h.optInt("fouls"),327,(int)centerY);
+   scoreLabel(c,p,""+h.optInt("score"),480,centerY,52,Color.WHITE);scoreLabel(c,p,""+a.optInt("score"),800,centerY,52,Color.WHITE);drawFouls(c,p,a.optInt("fouls"),897,(int)centerY);
+   scoreLabel(c,p,a.optString("name").substring(0,Math.min(3,a.optString("name").length())).toUpperCase(Locale.ROOT),1032,centerY,31,Color.WHITE);
    String quarter=s.optInt("quarter")<=4?"Q"+s.optInt("quarter"):"OT"+(s.optInt("quarter")-4);
-   if(s.optBoolean("clockEnabled",true)){int r=game.remaining();label(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),640,564,32,Color.rgb(255,254,15));label(c,p,quarter,640,589,18,Color.LTGRAY);}
-   else label(c,p,quarter,640,584,58,Color.rgb(255,254,15));
+   if(s.optBoolean("clockEnabled",true)){int r=game.remaining();scoreLabel(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),640,centerY-12,32,Color.rgb(255,254,15));scoreLabel(c,p,quarter,640,centerY+19,18,Color.LTGRAY);}
+   else scoreLabel(c,p,quarter,640,centerY,50,Color.rgb(255,254,15));
    p.setTextAlign(Paint.Align.LEFT);c.restore();}
   String overlay=s.optString("overlay");if(s.optDouble("overlayUntil")>0&&System.currentTimeMillis()>s.optDouble("overlayUntil"))overlay="";
   if(overlay.equals("kiss")){p.setColor(Color.rgb(81,42,125));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(28);c.drawRoundRect(30,80,1250,640,32,32,p);p.setColor(Color.rgb(255,254,15));p.setStrokeWidth(12);c.drawRoundRect(30,80,1250,640,32,32,p);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(81,42,125));c.drawRoundRect(350,80,930,180,16,16,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,"♥  KISS CAM  ♥",640,151,58,Color.WHITE);label(c,p,"♥",145,244,92,Color.rgb(255,254,15));label(c,p,"♥",1135,244,92,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
@@ -187,6 +191,11 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   label(c,p,"TUTTI INSIEME",640,380,26,Color.WHITE);p.setTextAlign(Paint.Align.LEFT);c.restore();
  }
  private void label(Canvas c,Paint p,String text,int x,int y,int size,int color){p.setTextSize(size);p.setColor(color);c.drawText(text,x,y,p);}
+ private void scoreLabel(Canvas c,Paint p,String text,float x,float centerY,int size,int color){
+  p.setTextSize(size);p.setColor(color);
+  Rect bounds=new Rect();p.getTextBounds(text,0,text.length(),bounds);
+  c.drawText(text,x,centerY-(bounds.top+bounds.bottom)/2f,p);
+ }
  private void drawFouls(Canvas c,Paint p,int fouls,int x,int y){p.setStrokeWidth(1.5f);for(int i=0;i<5;i++){boolean active=i<fouls;p.setStyle(active?Paint.Style.FILL:Paint.Style.STROKE);p.setColor(active?(i==4?Color.RED:Color.rgb(255,254,15)):Color.argb(180,255,255,255));c.drawCircle(x+i*14,y,5,p);}p.setStyle(Paint.Style.FILL);}
  private int teamColor(String hex,int fallback){try{return hex.matches("#[0-9a-fA-F]{6}")?Color.parseColor(hex):fallback;}catch(Exception ignored){return fallback;}}
  public final class Bridge {

@@ -53,3 +53,7 @@ Android Studio con SDK 36, JDK 17 e Gradle 8.11.1. Apri la cartella Android, las
 La dipendenza video è RootEncoder 2.6.4 (Apache 2.0) distribuita tramite JitPack. Gli APK automatici sono firmati con una chiave di prova creata dal runner GitHub per ogni compilazione. Per passare da un APK automatico al successivo occorre disinstallare quello precedente (i dati locali vengono persi). Per aggiornamenti Android senza reinstallazione serve configurare una firma privata e stabile nei segreti del repository.
 
 Il logo è ricavato dal centro del banner BAT TV scelto dall’utente. Viola #512A7D, giallo #FFFE0F e bianco.
+
+## Regola grafica della barra punteggi
+
+La posizione della barra e del logo segue la build 35. Quando cambia l'altezza della barra, il suo centro resta fermo: nomi, punteggi e cerchi dei falli vanno centrati verticalmente su quel centro. Tempo e quarto formano un unico gruppo su due righe, centrato nella barra; con il cronometro disattivato il quarto è centrato da solo. Questa regola vale per i renderer iPhone e Android. Non spostare la barra o il logo per compensare l'allineamento dei contenuti.
