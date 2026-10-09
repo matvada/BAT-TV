@@ -14,11 +14,17 @@ xcrun simctl bootstatus "$render_device" -b
 xcrun simctl install "$render_device" "$render_dir/Render.app"
 xcrun simctl launch "$render_device" it.battv.rendercheck
 render_data="$(xcrun simctl get_app_container "$render_device" it.battv.rendercheck data)"
-for render_attempt in {1..30}; do
+for render_attempt in {1..120}; do
  if [ -f "$render_data/Documents/result.txt" ]; then break; fi
  if [ -f "$render_data/Documents/error.txt" ]; then cat "$render_data/Documents/error.txt"; exit 1; fi
  sleep 1
 done
+mkdir -p native-render-check
+cp "$render_data/Documents/"*.png native-render-check/ || true
+if [ ! -f "$render_data/Documents/result.txt" ]; then
+ xcrun simctl spawn "$render_device" log show --last 3m --predicate 'process == "Renderer"' --style compact
+ exit 1
+fi
 cat "$render_data/Documents/result.txt"
 mkdir -p native-render-check
 cp "$render_data/Documents/"*.png native-render-check/

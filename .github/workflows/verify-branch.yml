@@ -27,6 +27,7 @@ jobs:
       - name: Verifica grafica ufficiale e migrazione partita
         run: tests/render-ios.sh
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: BAT-native-render-check
           path: native-render-check/*.png
@@ -47,6 +48,7 @@ jobs:
         working-directory: Android
         run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: BAT-Android-native-render-check
           path: Android/app/build/native-render-check/*.png

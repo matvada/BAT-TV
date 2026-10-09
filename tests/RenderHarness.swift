@@ -19,8 +19,10 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
             assert(game.apply("opponentPreset", team: nil, value: nil, text: "hub", now: 1000))
             game.away.score = 28; game.away.fouls = 3
             func save(_ name: String) throws {
+                NSLog("BAT render check: %@ begin", name)
                 guard let cg = renderer.image(for: game, at: 1000), let png = UIImage(cgImage: cg).pngData() else { throw NSError(domain: "Render", code: 1) }
                 try png.write(to: folder.appendingPathComponent(name + ".png"))
+                NSLog("BAT render check: %@ saved", name)
             }
             try save("broadcast-home-left")
             game.homeOnLeft = false; game.quarter = 3; game.clockEnabled = false; game.home.score = 128
@@ -34,7 +36,7 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
             for key in ["home", "away"] { var team = legacy[key] as! [String: Any]; team.removeValue(forKey: "logo"); legacy[key] = team }
             let migrated = try JSONDecoder().decode(Game.self, from: JSONSerialization.data(withJSONObject: legacy))
             assert(migrated.homeOnLeft && migrated.home.logo == "preset:bat" && migrated.home.score == 999)
-            assert((CTFontManagerCopyAvailablePostScriptNames() as? [String])?.contains("Galiga-Regular") == true)
+            guard UIFont(name: "Galiga-Regular", size: 41) != nil else { throw NSError(domain: "Galiga font unavailable", code: 2) }
             var manual = game
             assert(manual.apply("opponentPreset", team: nil, value: nil, text: "vac", now: 1000) && manual.away.name == "VBA")
             assert(manual.apply("opponentPreset", team: nil, value: nil, text: "manual", now: 1000) && manual.away.name.isEmpty && manual.away.logo.isEmpty && manual.away.score == 999)
