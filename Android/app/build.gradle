@@ -4,6 +4,12 @@ android {
  compileSdk 36
  defaultConfig { applicationId 'it.battv.app'; minSdk 26; targetSdk 35; versionCode Integer.parseInt(System.getenv('GITHUB_RUN_NUMBER') ?: '1'); versionName "1.0.${System.getenv('GITHUB_RUN_NUMBER') ?: '1'}" }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+ testOptions { unitTests.includeAndroidResources = true }
  buildTypes { release { minifyEnabled false } }
 }
-dependencies { implementation 'com.github.pedroSG94.RootEncoder:library:2.6.4' }
+dependencies {
+ implementation 'com.github.pedroSG94.RootEncoder:library:2.6.4'
+ testImplementation 'junit:junit:4.13.2'
+ testImplementation 'org.json:json:20240303'
+ testImplementation 'org.robolectric:robolectric:4.14.1'
+}

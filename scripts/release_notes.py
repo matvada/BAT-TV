@@ -49,7 +49,7 @@ def current_notes(number: int) -> str:
             + "\n".join(f"- {subject}." for subject in subjects)
             + "\n\n## File\n\n"
             + f"- `BAT-tv-1.0.{number}-iPhone.ipa` — iPhone, installazione con SideStore.\n"
-            + f"- `BAT-tv-1.0.{number}-Android.apk` — Android, versione di prova.\n")
+            + f"- `BAT-tv-1.0.{number}-Android.apk` — Android, app ufficiale.\n")
 
 
 if __name__ == "__main__":

@@ -166,7 +166,7 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
                   central?.identifier == request.central.identifier, let value = request.value else {
                 peripheral.respond(to: request, withResult: .insufficientAuthorization); continue
             }
-            guard input.count + value.count <= 8192 else {
+            guard input.count + value.count <= 16384 else {
                 input.removeAll(); peripheral.respond(to: request, withResult: .invalidAttributeValueLength); continue
             }
             input.append(value)
@@ -230,7 +230,7 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
               let state = try? JSONSerialization.jsonObject(with: encoded) else { return }
         let snapshot: [String: Any] = ["type": "state", "state": state, "revision": revision, "serverNow": now(), "cameraReady": cameraReady, "publishing": publishing]
         onEvent?(snapshot)
-        if authenticated { send(snapshot) }
+        if authenticated && packets.isEmpty { send(snapshot) }
     }
 
     private func send(_ value: [String: Any]) {
@@ -317,7 +317,7 @@ extension MatchBridge: CBCentralManagerDelegate, CBPeripheralDelegate {
     }
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard error == nil, characteristic.uuid == Self.stateID, let data = characteristic.value else { return }
-        guard clientInput.count + data.count < 8192 else { clientInput.removeAll(); return }
+        guard clientInput.count + data.count < 16384 else { clientInput.removeAll(); return }
         clientInput.append(data)
         while let delimiter = clientInput.firstIndex(of: 10) {
             let line = Data(clientInput.prefix(upTo: delimiter)); clientInput.removeSubrange(...delimiter)

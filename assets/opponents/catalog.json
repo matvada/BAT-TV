@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "season": "2026/2027",
+  "competition": "Under 13 Maschile Gold - Qualificazione",
+  "calendarSource": "Calendario_Basket_Academy_Ticino_Lonate.pdf",
+  "retrievedAt": "2026-10-09",
+  "status": "Bundled presets in official iPhone and Android apps",
+  "colorNote": "Display palette based on downloaded club identities; hex values are UI selections, not certified brand specifications.",
+  "abbreviationNote": "Three-character overlay labels; VBA explicitly specified by Matteo. Other abbreviations are editorial presets.",
+  "teams": [
+    {
+      "id": "hub",
+      "name": "Hub del Sempione",
+      "abbreviation": "HUB",
+      "primary": "#ed8000",
+      "secondary": "#9a9a9a",
+      "logoFile": "hub.png",
+      "logoSource": "https://www.hubdelsempione.it/img/loghi/HUB-logo-2026.png",
+      "source": "https://www.hubdelsempione.it/"
+    },
+    {
+      "id": "cbc",
+      "name": "CBC BasketSchool Corbetta",
+      "abbreviation": "CBC",
+      "primary": "#d90000",
+      "secondary": "#19355e",
+      "logoFile": "cbc.png",
+      "logoSource": "https://lh3.googleusercontent.com/F5YRZHrKaRiPQBVdRTyHhDHuI_I4uJM0hybUKNd_uFjKABhpnyzm49omZS_cnOTOx-syhLXgBFtk4Evs4Xl8vHWiZxL7JrT193Q",
+      "source": "https://golee.it/clubs/cbc-basketschool-corbetta/"
+    },
+    {
+      "id": "bin",
+      "name": "Virtus Binasco",
+      "abbreviation": "BIN",
+      "primary": "#171c52",
+      "secondary": "#df2617",
+      "logoFile": "bin.png",
+      "logoSource": "https://lh3.googleusercontent.com/TM4kSH2_qdmm2YQtxwR3oshF_PQuw9_-uEQ5Un6YIVFob_-7IbpWoDR-nUJX4ZGhNIQRjtFAHa82UWbq6S0ifbTFBMSGdVBBI96-",
+      "source": "https://golee.it/clubs/virtusbasketbinasco/"
+    },
+    {
+      "id": "vac",
+      "name": "Varese Academy Arcisate",
+      "abbreviation": "VBA",
+      "primary": "#d11317",
+      "secondary": "#262625",
+      "logoFile": "vac.svg",
+      "logoSource": "https://vareseacademy.com/img/index/logoacademy.svg",
+      "source": "https://vareseacademy.com/"
+    },
+    {
+      "id": "vbs",
+      "name": "Varese Basket School",
+      "abbreviation": "VBS",
+      "primary": "#ef7d00",
+      "secondary": "#282727",
+      "logoFile": "vbs.svg",
+      "logoSource": "https://varesebasketschool.it/wp-content/uploads/2025/11/vbs_varese_basket_school_logo.svg",
+      "source": "https://varesebasketschool.it/"
+    },
+    {
+      "id": "oli",
+      "name": "Olimpia Milano",
+      "abbreviation": "OLI",
+      "primary": "#ab1c2e",
+      "secondary": "#ffffff",
+      "logoFile": "oli.svg",
+      "logoSource": "https://www.olimpiamilano.com/wp-content/uploads/2026/06/pallacanestro-olimpia-milano-logo.svg",
+      "source": "https://www.olimpiamilano.com/"
+    },
+    {
+      "id": "rob",
+      "name": "Robur et Fides Varese",
+      "abbreviation": "ROB",
+      "primary": "#203d70",
+      "secondary": "#fff000",
+      "logoFile": "rob.png",
+      "logoSource": "https://www.roburetfides.com/wp-content/uploads/2022/04/logo.png",
+      "source": "https://www.roburetfides.com/"
+    },
+    {
+      "id": "mi3",
+      "name": "OSCOM Milano3 Basiglio",
+      "abbreviation": "MI3",
+      "primary": "#c40000",
+      "secondary": "#0c559f",
+      "logoFile": "mi3.png",
+      "logoSource": "https://i0.wp.com/www.milano3basket.com/new/wp-content/uploads/2020/07/Logo-Milano3_trasp_bianco_corretto.png",
+      "source": "https://www.milano3basket.com/"
+    },
+    {
+      "id": "cat",
+      "name": "C.A.T. Vigevano",
+      "abbreviation": "CAT",
+      "primary": "#166798",
+      "secondary": "#e2b53a",
+      "logoFile": "cat.webp",
+      "logoSource": "https://101sport.cloud/1765_logo-05e7b702-e476.webp",
+      "source": "https://www.basketcatvigevano.com/",
+      "note": "Official header asset only 194x70; retain uncropped original. Higher resolution crest desirable."
+    }
+  ]
+}
