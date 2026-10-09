@@ -54,6 +54,10 @@ La dipendenza video è RootEncoder 2.6.4 (Apache 2.0) distribuita tramite JitPac
 
 Il logo è ricavato dal centro del banner BAT TV scelto dall’utente. Viola #512A7D, giallo #FFFE0F e bianco.
 
-## Regola grafica della barra punteggi
+## Regola grafica ufficiale
 
-La posizione della barra e del logo segue la build 35. Quando cambia l'altezza della barra, il suo centro resta fermo: nomi, punteggi e cerchi dei falli vanno centrati verticalmente su quel centro. Tempo e quarto formano un unico gruppo su due righe, centrato nella barra; con il cronometro disattivato il quarto è centrato da solo. Questa regola vale per i renderer iPhone e Android. Non spostare la barra o il logo per compensare l'allineamento dei contenuti.
+Il tabellone broadcast approvato usa una griglia di 320 × 118, con scala unica del 90%. Posizione nel video: sinistra 11,5%, margine basso 4,3%, larghezza iniziale 20,5% del video. Nessun adattamento indipendente di logo, punteggi o testi. I box hanno inclinazione di −10°; i due cerchi mantengono la stessa distanza dal bordo esterno del rispettivo box alla loro altezza centrale. Il BAT originale riempie il cerchio. Gli altri loghi sono centrati sull’artwork e contenuti su fondo bianco.
+
+Usare Galiga con inclinazione sintetica di 10° per il tabellone e i titoli dell’app. Centrare verticalmente l’inchiostro dei glifi, non la baseline. Punteggio sinistro allineato a destra e destro a sinistra con identico margine. Falli e timeout sono separati dai punteggi. Il titolo del quarto resta a sinistra; il tempo resta a destra e scompare quando disattivato. Filigrana pipistrello nel box BAT anche quando si cambia lato. Logo canale originale in vetro bianco semitrasparente.
+
+La scheda Grafica in Camera e Regia offre colore di sfondo di entrambe le squadre, lato BAT, nove preset locali degli avversari e l’opzione Manuale (sigla e logo personalizzati). Varese Academy usa VBA. Selezionare un preset aggiorna sigla, colore e logo in un solo comando senza cambiare punteggi o statistiche. I loghi personali vengono centrati e ridotti prima del trasferimento Bluetooth; i preset trasferiscono solo un ID. Il limite dei messaggi è 16 KB per permettere due loghi personali nello stesso snapshot.

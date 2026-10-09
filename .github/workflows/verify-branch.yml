@@ -24,6 +24,12 @@ jobs:
             -sdk iphoneos -destination 'generic/platform=iOS' \
             -derivedDataPath "$RUNNER_TEMP/BATDerivedData" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+      - name: Verifica grafica ufficiale e migrazione partita
+        run: tests/render-ios.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BAT-native-render-check
+          path: native-render-check/*.png
   android:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -39,4 +45,8 @@ jobs:
           "$SDKMANAGER" 'platforms;android-36' 'build-tools;35.0.0'
       - name: Compila Android
         working-directory: Android
-        run: ./gradlew --no-daemon :app:assembleDebug
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BAT-Android-native-render-check
+          path: Android/app/build/native-render-check/*.png

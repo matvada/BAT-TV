@@ -17,6 +17,7 @@ import org.json.*;
 import java.util.*;
 
 public final class MainActivity extends Activity implements BleLink.Events,ConnectChecker {
+ private ValueCallback<android.net.Uri[]> logoUpload;
  private WebView web;private OpenGlView preview;private RtmpCamera2 camera;private ImageObjectFilterRender filter;private Bitmap logo,scoreWatermark;private Soundboard soundboard;
  private int videoHeight=1080;
  private BleLink link;private GameStore game;private String role="",pin="",serverUrl="",streamKey="";
@@ -29,6 +30,11 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   FrameLayout frame=new FrameLayout(this);preview=new OpenGlView(this);frame.addView(preview,new FrameLayout.LayoutParams(-1,-1));
   web=new WebView(this);web.setBackgroundColor(Color.TRANSPARENT);web.getSettings().setJavaScriptEnabled(true);web.getSettings().setAllowFileAccess(true);web.getSettings().setAllowFileAccessFromFileURLs(false);web.getSettings().setAllowUniversalAccessFromFileURLs(false);
   web.setWebChromeClient(new WebChromeClient(){
+   @Override public boolean onShowFileChooser(WebView view,ValueCallback<android.net.Uri[]> callback,FileChooserParams params){
+    if(logoUpload!=null)logoUpload.onReceiveValue(null);logoUpload=callback;
+    Intent intent=new Intent(Intent.ACTION_GET_CONTENT);intent.setType("image/*");intent.addCategory(Intent.CATEGORY_OPENABLE);
+    try{startActivityForResult(Intent.createChooser(intent,"Scegli logo squadra"),2014);}catch(Exception e){logoUpload.onReceiveValue(null);logoUpload=null;status("Selezione immagini non disponibile");}return true;
+   }
    @Override public boolean onJsPrompt(WebView view,String url,String message,String defaultValue,JsPromptResult result){
     EditText input=new EditText(MainActivity.this);input.setText(defaultValue);
     new AlertDialog.Builder(MainActivity.this).setTitle(message).setView(input).setPositiveButton("OK",(d,w)->result.confirm(input.getText().toString())).setNegativeButton("Annulla",(d,w)->result.cancel()).setOnCancelListener(d->result.cancel()).show();return true;
@@ -142,27 +148,23 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void drawOverlay()throws JSONException{
   Bitmap b=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
-  if(s.optBoolean("showScore")){c.save();c.translate(0,49);p.setColor(Color.WHITE);p.setShader(new LinearGradient(0,529,0,593,Color.argb(245,86,49,136),Color.argb(245,73,37,118),Shader.TileMode.CLAMP));c.drawRect(190,529,1090,593,p);p.setShader(null);
-   if(scoreWatermark!=null){c.save();c.clipRect(190,529,1090,593);p.setAlpha(36);p.setFilterBitmap(true);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));c.drawBitmap(scoreWatermark,new Rect(0,0,scoreWatermark.getWidth(),Math.min(960,scoreWatermark.getHeight())),new Rect(416,451,864,721),p);p.setXfermode(null);p.setAlpha(255);c.restore();}
-   p.setColor(teamColor(h.optString("color"),Color.rgb(81,42,125)));c.drawRect(190,529,197,593,p);p.setColor(teamColor(a.optString("color"),Color.rgb(255,254,15)));c.drawRect(1083,529,1090,593,p);
-   p.setTextAlign(Paint.Align.CENTER);
-   // Keep every score element tied to the bar centre when its height changes.
-   float centerY=(529f+593f)/2f;
-   scoreLabel(c,p,h.optString("name").substring(0,Math.min(3,h.optString("name").length())).toUpperCase(Locale.ROOT),248,centerY,31,Color.WHITE);drawFouls(c,p,h.optInt("fouls"),327,(int)centerY);
-   scoreLabel(c,p,""+h.optInt("score"),480,centerY,52,Color.WHITE);scoreLabel(c,p,""+a.optInt("score"),800,centerY,52,Color.WHITE);drawFouls(c,p,a.optInt("fouls"),897,(int)centerY);
-   scoreLabel(c,p,a.optString("name").substring(0,Math.min(3,a.optString("name").length())).toUpperCase(Locale.ROOT),1032,centerY,31,Color.WHITE);
-   String quarter=s.optInt("quarter")<=4?"Q"+s.optInt("quarter"):"OT"+(s.optInt("quarter")-4);
-   if(s.optBoolean("clockEnabled",true)){int r=game.remaining();scoreLabel(c,p,String.format(Locale.US,"%02d:%02d",r/60,r%60),640,centerY-12,32,Color.rgb(255,254,15));scoreLabel(c,p,quarter,640,centerY+19,18,Color.LTGRAY);}
-   else scoreLabel(c,p,quarter,640,centerY,50,Color.rgb(255,254,15));
-   p.setTextAlign(Paint.Align.LEFT);c.restore();}
+  if(s.optBoolean("showScore"))drawBroadcastScore(c,p,s,h,a);
   String overlay=s.optString("overlay");if(s.optDouble("overlayUntil")>0&&System.currentTimeMillis()>s.optDouble("overlayUntil"))overlay="";
   if(overlay.equals("kiss")){p.setColor(Color.rgb(81,42,125));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(28);c.drawRoundRect(30,80,1250,640,32,32,p);p.setColor(Color.rgb(255,254,15));p.setStrokeWidth(12);c.drawRoundRect(30,80,1250,640,32,32,p);p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(81,42,125));c.drawRoundRect(350,80,930,180,16,16,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,"♥  KISS CAM  ♥",640,151,58,Color.WHITE);label(c,p,"♥",145,244,92,Color.rgb(255,254,15));label(c,p,"♥",1135,244,92,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
   else if(overlay.equals("triple"))drawTriple(c,p,System.currentTimeMillis());
   else if(overlay.equals("cheer"))drawCheer(c,p,System.currentTimeMillis(),s.optDouble("overlayUntil"));
   else if(overlay.equals("break")||overlay.equals("final")){p.setColor(Color.argb(230,81,42,125));c.drawRect(0,0,1280,720,p);p.setColor(Color.argb(85,0,0,0));c.drawRoundRect(170,205,1110,465,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(170,205,180,465,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,overlay.equals("final")?"FINE PARTITA":"INTERVALLO",640,327,76,Color.WHITE);label(c,p,h.optString("name")+"  "+h.optInt("score")+" – "+a.optInt("score")+"  "+a.optString("name"),640,409,38,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
   else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,400,1222,490,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(58,400,67,490,p);label(c,p,s.optString("caption"),86,461,36,Color.WHITE);}
-  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();Path logoClip=new Path();logoClip.addRoundRect(1168,82,1232,146,12,12,Path.Direction.CW);c.clipPath(logoClip);c.drawBitmap(logo,new Rect(106,80,918,892),new Rect(1168,82,1232,146),p);c.restore();
+  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();RectF channel=new RectF(1089.28f,46.8f,1157.12f,114.64f);Path logoClip=new Path();logoClip.addRoundRect(channel,12.21f,12.21f,Path.Direction.CW);c.clipPath(logoClip);
+  p.setColor(Color.argb(13,255,255,255));c.drawRect(channel,p);
+  ColorMatrix gray=new ColorMatrix();gray.setSaturation(0);ColorMatrix light=new ColorMatrix(new float[]{.82f,0,0,0,63.75f,0,.82f,0,0,63.75f,0,0,.82f,0,63.75f,0,0,0,1,0});gray.postConcat(light);p.setColorFilter(new ColorMatrixColorFilter(gray));p.setAlpha(72);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));c.drawBitmap(logo,new Rect(106,80,918,892),channel,p);p.setColorFilter(null);p.setXfermode(null);p.setAlpha(255);c.restore();p.setStyle(Paint.Style.STROKE);p.setColor(Color.argb(38,255,255,255));p.setStrokeWidth(.7f);c.drawRoundRect(channel,12.21f,12.21f,p);p.setStyle(Paint.Style.FILL);
   if(filter!=null)filter.setImage(b);
+ }
+ private BroadcastRenderer broadcastRenderer;
+ private Typeface broadcastFont;
+ private void drawBroadcastScore(Canvas c,Paint p,JSONObject s,JSONObject h,JSONObject a){
+  if(broadcastRenderer==null)broadcastRenderer=new BroadcastRenderer(getAssets());
+  broadcastRenderer.draw(c,p,s,h,a,game.remaining());
  }
  private void drawTriple(Canvas c,Paint p,long now){
   float pulse=1f+(float)Math.sin(now/170.0)*0.018f;c.save();c.scale(pulse,pulse,640,325);
@@ -190,7 +192,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   p.setTextAlign(Paint.Align.CENTER);label(c,p,"FORZA BAT!",640,340,88,Color.rgb(255,254,15));
   label(c,p,"TUTTI INSIEME",640,380,26,Color.WHITE);p.setTextAlign(Paint.Align.LEFT);c.restore();
  }
- private void label(Canvas c,Paint p,String text,int x,int y,int size,int color){p.setTextSize(size);p.setColor(color);c.drawText(text,x,y,p);}
+ private void label(Canvas c,Paint p,String text,int x,int y,int size,int color){if(broadcastFont==null)broadcastFont=Typeface.createFromAsset(getAssets(),"broadcast/Galiga.ttf");p.setTypeface(broadcastFont);p.setTextSkewX(-.176327f);p.setTextSize(size);p.setColor(color);c.drawText(text,x,y,p);p.setTextSkewX(0);}
  private void scoreLabel(Canvas c,Paint p,String text,float x,float centerY,int size,int color){
   p.setTextSize(size);p.setColor(color);
   Rect bounds=new Rect();p.getTextBounds(text,0,text.length(),bounds);
@@ -221,6 +223,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  @Override public void onDisconnect(){main.post(()->{live=false;status("Invio video fermato");});}
  @Override public void onAuthError(){main.post(()->{abortLive();status("Chiave Facebook non accettata");});}
  @Override public void onAuthSuccess(){}
+ @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==2014&&logoUpload!=null){logoUpload.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data));logoUpload=null;}}
  @Override public void onBackPressed(){if(live){new AlertDialog.Builder(this).setMessage("Ferma l’invio video prima di cambiare ruolo.").setPositiveButton("OK",null).show();}else setRole("");}
  @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);stopCamera();link.close();web.destroy();super.onDestroy();}
 }
