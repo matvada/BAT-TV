@@ -132,6 +132,7 @@ struct BATHybridView: UIViewRepresentable {
         let web = WKWebView(frame: .zero, configuration: configuration)
         web.isOpaque = false; web.backgroundColor = .clear; web.scrollView.backgroundColor = .clear
         web.scrollView.bounces = false
+        web.scrollView.contentInsetAdjustmentBehavior = .never
         web.uiDelegate = context.coordinator; web.navigationDelegate = context.coordinator
         context.coordinator.attach(web)
         if let root = Bundle.main.url(forResource: "BATWeb", withExtension: nil) {

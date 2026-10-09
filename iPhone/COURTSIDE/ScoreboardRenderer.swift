@@ -136,7 +136,7 @@ final class ScoreboardRenderer {
     }
     private func drawBroadcastScore(_ game: Game, at now: Double, in cg: CGContext) {
         cg.saveGState(); defer { cg.restoreGState() }
-        let scale: CGFloat = visibleRect.width * 0.205 / 320 * 0.9
+        let scale: CGFloat = visibleRect.width * 0.205 / 320 * 0.945
         cg.translateBy(x: visibleRect.minX + visibleRect.width * 0.115, y: visibleRect.maxY - visibleRect.height * 0.043 - 118 * scale)
         cg.scaleBy(x: scale, y: scale)
         let left = game.homeOnLeft ? game.home : game.away
