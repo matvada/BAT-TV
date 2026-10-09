@@ -24,6 +24,12 @@ public class BroadcastTest {
   assertFalse(g.apply(command("badLogo","teamLogo","preset:../../Info").put("team","home")));
   assertTrue(g.apply(command("batLogo","teamLogo","preset:bat").put("team","home")));
  }
+ @Test public void positionCommandPreservesMatch()throws Exception{
+  GameStore g=new GameStore();g.state.getJSONObject("home").put("score",32);
+  assertEquals("left",g.state.getString("scorePosition"));
+  assertTrue(g.apply(command("center","scorePosition","center")));assertEquals("center",g.state.getString("scorePosition"));assertEquals(32,g.state.getJSONObject("home").getInt("score"));
+  assertFalse(g.apply(command("bad","scorePosition","top")));assertEquals("center",g.state.getString("scorePosition"));
+ }
  @Test public void nativeRenderingFitsFrame()throws Exception{
   BroadcastRenderer renderer=new BroadcastRenderer(RuntimeEnvironment.getApplication().getAssets());GameStore g=new GameStore();g.apply(command("preset","opponentPreset","hub"));g.state.getJSONObject("home").put("score",32).put("fouls",2).put("timeouts",1);g.state.getJSONObject("away").put("score",28).put("fouls",3);
   render(renderer,g,"broadcast-home-left");
@@ -32,11 +38,15 @@ public class BroadcastTest {
  }
  @Test public void widePhoneAndTabletKeepEntireOverlayVisible()throws Exception{
   BroadcastRenderer renderer=new BroadcastRenderer(RuntimeEnvironment.getApplication().getAssets());GameStore g=new GameStore();
-  for(int[] viewport:new int[][]{{852,393},{1024,768},{1280,720}}){
+  for(String position:new String[]{"left","center","right"})for(int[] viewport:new int[][]{{852,393},{1024,768},{1280,720}}){
+   assertTrue(g.apply(command(position+viewport[0],"scorePosition",position)));
    renderer.setViewport(viewport[0],viewport[1]);RectF visible=BroadcastRenderer.visibleVideoRect(viewport[0],viewport[1]);
    Bitmap b=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
    renderer.draw(c,p,g.state,g.state.getJSONObject("home"),g.state.getJSONObject("away"),600);
-   for(int y=0;y<720;y++)for(int x=0;x<1280;x++)if(Color.alpha(b.getPixel(x,y))>0)assertTrue("Graphic cropped by preview",x>=visible.left&&x<=visible.right&&y>=visible.top&&y<=visible.bottom);
+   int minX=1280,maxX=0;
+   for(int y=0;y<720;y++)for(int x=0;x<1280;x++)if(Color.alpha(b.getPixel(x,y))>0){minX=Math.min(minX,x);maxX=Math.max(maxX,x);assertTrue("Graphic cropped by preview",x>=visible.left&&x<=visible.right&&y>=visible.top&&y<=visible.bottom);}
+   if(position.equals("center"))assertEquals("Graphic centred",visible.centerX(),(minX+maxX)/2f,2f);
+   if(position.equals("right"))assertEquals("Right margin matches left margin",visible.width()*.115f,visible.right-maxX,2f);
    float logoX=visible.left+visible.width()*.851f,logoY=visible.top+visible.height()*.065f,logoWidth=visible.width()*.053f;
    assertTrue(logoX>=visible.left&&logoX+logoWidth<=visible.right&&logoY>=visible.top&&logoY+logoWidth<=visible.bottom);
   }
@@ -46,7 +56,7 @@ public class BroadcastTest {
   renderer.draw(c,p,g.state,g.state.getJSONObject("home"),g.state.getJSONObject("away"),g.remaining());
   assertEquals("Watermark must preserve opaque panel",255,Color.alpha(bitmap.getPixel(320,950)));
   int minX=1920,minY=1080,maxX=0,maxY=0;for(int y=0;y<1080;y++)for(int x=0;x<1920;x++)if(Color.alpha(bitmap.getPixel(x,y))>0){minX=Math.min(x,minX);minY=Math.min(y,minY);maxX=Math.max(x,maxX);maxY=Math.max(y,maxY);}
-  assertTrue("Graphic must stay in its approved frame",minX>=210&&maxX<=610&&minY>=880&&maxY<=1040);
+  assertTrue("Graphic must stay in its approved frame",minX>=210&&maxX<=630&&minY>=875&&maxY<=1040);
   assertTrue("Graphic is empty",maxX-minX>300&&maxY-minY>100);
   File dir=new File("build/native-render-check");dir.mkdirs();try(FileOutputStream out=new FileOutputStream(new File(dir,name+".png"))){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}
  }

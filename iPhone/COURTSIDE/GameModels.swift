@@ -35,12 +35,13 @@ struct Game: Codable {
     var showScore: Bool
     var scoreStyle: String
     var homeOnLeft: Bool
+    var scorePosition: String
     var live: Bool
     var liveCommand: Double
 
     private enum CodingKeys: String, CodingKey {
         case home, away, quarter, clock, clockEnabled, running, startedAt
-        case overlay, overlayUntil, caption, showScore, scoreStyle, homeOnLeft, live, liveCommand
+        case overlay, overlayUntil, caption, showScore, scoreStyle, homeOnLeft, scorePosition, live, liveCommand
     }
 
     init(from decoder: Decoder) throws {
@@ -58,6 +59,7 @@ struct Game: Codable {
         showScore = try value.decode(Bool.self, forKey: .showScore)
         scoreStyle = try value.decodeIfPresent(String.self, forKey: .scoreStyle) ?? "broadcast"
         homeOnLeft = try value.decodeIfPresent(Bool.self, forKey: .homeOnLeft) ?? true
+        scorePosition = try value.decodeIfPresent(String.self, forKey: .scorePosition) ?? "left"
         live = try value.decode(Bool.self, forKey: .live)
         liveCommand = try value.decode(Double.self, forKey: .liveCommand)
     }
@@ -65,12 +67,12 @@ struct Game: Codable {
     init(home: Team, away: Team, quarter: Int, clock: Double, clockEnabled: Bool,
          running: Bool, startedAt: Double, overlay: String, overlayUntil: Double,
          caption: String, showScore: Bool, live: Bool, liveCommand: Double,
-         scoreStyle: String = "broadcast", homeOnLeft: Bool = true) {
+         scoreStyle: String = "broadcast", homeOnLeft: Bool = true, scorePosition: String = "left") {
         self.home = home; self.away = away; self.quarter = quarter; self.clock = clock
         self.clockEnabled = clockEnabled; self.running = running; self.startedAt = startedAt
         self.overlay = overlay; self.overlayUntil = overlayUntil; self.caption = caption
         self.showScore = showScore; self.live = live; self.liveCommand = liveCommand
-        self.scoreStyle = scoreStyle; self.homeOnLeft = homeOnLeft
+        self.scoreStyle = scoreStyle; self.homeOnLeft = homeOnLeft; self.scorePosition = scorePosition
     }
 
     func remaining(at serverNow: Double) -> Int {
@@ -158,6 +160,9 @@ extension Game {
         case "scoreStyle":
             guard let text, ["classic", "broadcast"].contains(text) else { return false }
             scoreStyle = text
+        case "scorePosition":
+            guard let text, ["left", "center", "right"].contains(text) else { return false }
+            scorePosition = text
         case "homeOnLeft":
             guard let value, value == 0 || value == 1 else { return false }
             homeOnLeft = value == 1

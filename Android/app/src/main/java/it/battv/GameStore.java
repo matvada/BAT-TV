@@ -10,7 +10,7 @@ public final class GameStore {
  public GameStore() { try {
   state=new JSONObject().put("home",team("BAT","#512A7D")).put("away",team("AVV","#FFFE0F"))
    .put("quarter",1).put("clock",600).put("clockEnabled",true).put("running",false).put("startedAt",System.currentTimeMillis())
-   .put("overlay","").put("overlayUntil",0).put("caption","").put("showScore",true).put("scoreStyle","broadcast").put("homeOnLeft",true).put("live",false).put("liveCommand",0);
+   .put("overlay","").put("overlayUntil",0).put("caption","").put("showScore",true).put("scoreStyle","broadcast").put("homeOnLeft",true).put("scorePosition","left").put("live",false).put("liveCommand",0);
  }catch(JSONException e){throw new IllegalStateException(e);} }
  private JSONObject team(String n,String c)throws JSONException {return new JSONObject().put("name",n).put("color",c).put("logo",n.equals("BAT")?"preset:bat":"").put("score",0).put("fouls",0).put("timeouts",0);}
  public int remaining(){return remaining(state,System.currentTimeMillis());}
@@ -35,6 +35,7 @@ public final class GameStore {
    case "caption":next.put("caption",text.substring(0,Math.min(text.length(),100))).put("overlay","caption").put("overlayUntil",0);break;
    case "showScore":next.put("showScore",v!=0);break;
    case "scoreStyle":if(!text.equals("classic")&&!text.equals("broadcast"))return false;next.put("scoreStyle",text);break;
+   case "scorePosition":if(!Arrays.asList("left","center","right").contains(text))return false;next.put("scorePosition",text);break;
    case "homeOnLeft":if(v!=0&&v!=1)return false;next.put("homeOnLeft",v==1);break;
    case "rename":if(!t.equals("home")&&!t.equals("away")||text.trim().isEmpty())return false;
     next.getJSONObject(t).put("name",text.trim().substring(0,Math.min(3,text.trim().length())).toUpperCase(Locale.ROOT));break;
