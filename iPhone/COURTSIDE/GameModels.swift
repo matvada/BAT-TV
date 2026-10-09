@@ -184,3 +184,14 @@ extension Game {
         return true
     }
 }
+
+// Aspect-fill preview crops the encoded 16:9 frame on wide phones and tablets.
+// Place overlay anchors inside the visible video rectangle, in encoder coordinates.
+enum BroadcastLayout {
+    static func visibleVideoRect(viewport: CGSize) -> CGRect {
+        guard viewport.width > 0, viewport.height > 0 else { return CGRect(x: 0, y: 0, width: 1280, height: 720) }
+        let scale = max(viewport.width / 1280, viewport.height / 720)
+        let width = viewport.width / scale, height = viewport.height / scale
+        return CGRect(x: (1280 - width) / 2, y: (720 - height) / 2, width: width, height: height)
+    }
+}

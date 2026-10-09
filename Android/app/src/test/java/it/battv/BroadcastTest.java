@@ -30,6 +30,17 @@ public class BroadcastTest {
   g.state.put("homeOnLeft",false).put("clockEnabled",false).put("quarter",3);g.state.getJSONObject("home").put("score",128);render(renderer,g,"broadcast-home-right-clock-off");
   g.state.put("homeOnLeft",true).put("clockEnabled",true).put("quarter",12).put("clock",3600);g.state.getJSONObject("home").put("score",999);g.state.getJSONObject("away").put("score",999).put("logo","preset:cat");render(renderer,g,"broadcast-long-labels");
  }
+ @Test public void widePhoneAndTabletKeepEntireOverlayVisible()throws Exception{
+  BroadcastRenderer renderer=new BroadcastRenderer(RuntimeEnvironment.getApplication().getAssets());GameStore g=new GameStore();
+  for(int[] viewport:new int[][]{{852,393},{1024,768},{1280,720}}){
+   renderer.setViewport(viewport[0],viewport[1]);RectF visible=BroadcastRenderer.visibleVideoRect(viewport[0],viewport[1]);
+   Bitmap b=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+   renderer.draw(c,p,g.state,g.state.getJSONObject("home"),g.state.getJSONObject("away"),600);
+   for(int y=0;y<720;y++)for(int x=0;x<1280;x++)if(Color.alpha(b.getPixel(x,y))>0)assertTrue("Graphic cropped by preview",x>=visible.left&&x<=visible.right&&y>=visible.top&&y<=visible.bottom);
+   float logoX=visible.left+visible.width()*.851f,logoY=visible.top+visible.height()*.065f,logoWidth=visible.width()*.053f;
+   assertTrue(logoX>=visible.left&&logoX+logoWidth<=visible.right&&logoY>=visible.top&&logoY+logoWidth<=visible.bottom);
+  }
+ }
  private void render(BroadcastRenderer renderer,GameStore g,String name)throws Exception{
   Bitmap bitmap=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(bitmap);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
   renderer.draw(c,p,g.state,g.state.getJSONObject("home"),g.state.getJSONObject("away"),g.remaining());

@@ -7,6 +7,7 @@ final class ScoreboardRenderer {
     private let size = CGSize(width: 1280, height: 720)
     private let outputSize = CGSize(width: 1920, height: 1080)
     private let ink = UIColor.white
+    private var visibleRect = CGRect(x: 0, y: 0, width: 1280, height: 720)
     // The banner artwork already contains a high resolution logo. Use a tight
     // crop so the lettering fills the small channel bug in the broadcast.
     private lazy var channelLogo: UIImage? = {
@@ -23,7 +24,9 @@ final class ScoreboardRenderer {
         return UIImage(cgImage: bat)
     }()
 
-    func image(for game: Game, at serverNow: Double) -> CGImage? {
+    func image(for game: Game, at serverNow: Double, viewport: CGSize = CGSize(width: 1280, height: 720)) -> CGImage? {
+        // Keep the last landscape layout when Facebook Producer rotates the UI.
+        if viewport.width >= viewport.height && viewport.height > 0 { visibleRect = BroadcastLayout.visibleVideoRect(viewport: viewport) }
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = false
@@ -60,12 +63,13 @@ final class ScoreboardRenderer {
         return UIImage(cgImage: filtered)
     }()
     private func drawChannel(in cg: CGContext) {
-        let rect = CGRect(x: 1089.28, y: 46.8, width: 67.84, height: 67.84)
-        cg.saveGState(); UIBezierPath(roundedRect: rect, cornerRadius: 12.21).addClip()
+        let width = visibleRect.width * 0.053
+        let rect = CGRect(x: visibleRect.minX + visibleRect.width * 0.851, y: visibleRect.minY + visibleRect.height * 0.065, width: width, height: width)
+        cg.saveGState(); UIBezierPath(roundedRect: rect, cornerRadius: width * 0.18).addClip()
         cg.setFillColor(UIColor.white.withAlphaComponent(0.052).cgColor); cg.fill(rect)
         glassLogo?.draw(in: rect, blendMode: .screen, alpha: 0.281)
         cg.restoreGState(); cg.setStrokeColor(UIColor.white.withAlphaComponent(0.15).cgColor); cg.setLineWidth(0.7)
-        cg.addPath(UIBezierPath(roundedRect: rect, cornerRadius: 12.21).cgPath); cg.strokePath()
+        cg.addPath(UIBezierPath(roundedRect: rect, cornerRadius: width * 0.18).cgPath); cg.strokePath()
     }
 
     // Approved geometry uses a 320 × 118 design grid; scale the entire group together.
@@ -132,8 +136,8 @@ final class ScoreboardRenderer {
     }
     private func drawBroadcastScore(_ game: Game, at now: Double, in cg: CGContext) {
         cg.saveGState(); defer { cg.restoreGState() }
-        let scale: CGFloat = 1280 * 0.205 / 320 * 0.9
-        cg.translateBy(x: 1280 * 0.115, y: 720 * (1 - 0.043) - 118 * scale)
+        let scale: CGFloat = visibleRect.width * 0.205 / 320 * 0.9
+        cg.translateBy(x: visibleRect.minX + visibleRect.width * 0.115, y: visibleRect.maxY - visibleRect.height * 0.043 - 118 * scale)
         cg.scaleBy(x: scale, y: scale)
         let left = game.homeOnLeft ? game.home : game.away
         let right = game.homeOnLeft ? game.away : game.home

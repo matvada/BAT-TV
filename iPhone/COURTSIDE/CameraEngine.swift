@@ -362,7 +362,7 @@ final class CameraEngine: ObservableObject {
     private func serverNow() -> Double { Date().timeIntervalSince1970 * 1000 + serverOffset }
 
     private func drawOverlay() async {
-        guard let game, let image = renderer.image(for: game, at: serverNow()) else { return }
+        guard let game, let image = renderer.image(for: game, at: serverNow(), viewport: preview.bounds.size) else { return }
         await OverlayStage.shared.update(image)
     }
 

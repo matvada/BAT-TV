@@ -27,7 +27,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   game=new GameStore();String saved=getPreferences(0).getString("game",null);if(getPreferences(0).getBoolean("matchInProgress",false)&&saved!=null)try{game.state=new JSONObject(saved);game.state.put("clock",game.remaining()).put("running",false).put("live",false).put("overlay","").put("overlayUntil",0);}catch(JSONException ignored){}
   serverUrl=getPreferences(0).getString("server","");
   videoHeight=getPreferences(0).getInt("videoHeight",1080);if(videoHeight!=480&&videoHeight!=720&&videoHeight!=1080)videoHeight=1080;
-  FrameLayout frame=new FrameLayout(this);preview=new OpenGlView(this);frame.addView(preview,new FrameLayout.LayoutParams(-1,-1));
+  FrameLayout frame=new FrameLayout(this);preview=new OpenGlView(this);preview.setAspectRatioMode(com.pedro.encoder.utils.gl.AspectRatioMode.Fill);frame.addView(preview,new FrameLayout.LayoutParams(-1,-1));
   web=new WebView(this);web.setBackgroundColor(Color.TRANSPARENT);web.getSettings().setJavaScriptEnabled(true);web.getSettings().setAllowFileAccess(true);web.getSettings().setAllowFileAccessFromFileURLs(false);web.getSettings().setAllowUniversalAccessFromFileURLs(false);
   web.setWebChromeClient(new WebChromeClient(){
    @Override public boolean onShowFileChooser(WebView view,ValueCallback<android.net.Uri[]> callback,FileChooserParams params){
@@ -155,15 +155,16 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   else if(overlay.equals("cheer"))drawCheer(c,p,System.currentTimeMillis(),s.optDouble("overlayUntil"));
   else if(overlay.equals("break")||overlay.equals("final")){p.setColor(Color.argb(230,81,42,125));c.drawRect(0,0,1280,720,p);p.setColor(Color.argb(85,0,0,0));c.drawRoundRect(170,205,1110,465,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(170,205,180,465,p);p.setTextAlign(Paint.Align.CENTER);label(c,p,overlay.equals("final")?"FINE PARTITA":"INTERVALLO",640,327,76,Color.WHITE);label(c,p,h.optString("name")+"  "+h.optInt("score")+" – "+a.optInt("score")+"  "+a.optString("name"),640,409,38,Color.rgb(255,254,15));p.setTextAlign(Paint.Align.LEFT);}
   else if(overlay.equals("caption")){p.setColor(Color.rgb(81,42,125));c.drawRoundRect(58,400,1222,490,14,14,p);p.setColor(Color.rgb(255,254,15));c.drawRect(58,400,67,490,p);label(c,p,s.optString("caption"),86,461,36,Color.WHITE);}
-  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();RectF channel=new RectF(1089.28f,46.8f,1157.12f,114.64f);Path logoClip=new Path();logoClip.addRoundRect(channel,12.21f,12.21f,Path.Direction.CW);c.clipPath(logoClip);
+  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();RectF visible=BroadcastRenderer.visibleVideoRect(preview.getWidth(),preview.getHeight());float channelWidth=visible.width()*.053f,channelX=visible.left+visible.width()*.851f,channelY=visible.top+visible.height()*.065f;RectF channel=new RectF(channelX,channelY,channelX+channelWidth,channelY+channelWidth);Path logoClip=new Path();logoClip.addRoundRect(channel,channelWidth*.18f,channelWidth*.18f,Path.Direction.CW);c.clipPath(logoClip);
   p.setColor(Color.argb(13,255,255,255));c.drawRect(channel,p);
-  ColorMatrix gray=new ColorMatrix();gray.setSaturation(0);ColorMatrix light=new ColorMatrix(new float[]{.82f,0,0,0,63.75f,0,.82f,0,0,63.75f,0,0,.82f,0,63.75f,0,0,0,1,0});gray.postConcat(light);p.setColorFilter(new ColorMatrixColorFilter(gray));p.setAlpha(72);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));c.drawBitmap(logo,new Rect(106,80,918,892),channel,p);p.setColorFilter(null);p.setXfermode(null);p.setAlpha(255);c.restore();p.setStyle(Paint.Style.STROKE);p.setColor(Color.argb(38,255,255,255));p.setStrokeWidth(.7f);c.drawRoundRect(channel,12.21f,12.21f,p);p.setStyle(Paint.Style.FILL);
+  ColorMatrix gray=new ColorMatrix();gray.setSaturation(0);ColorMatrix light=new ColorMatrix(new float[]{.82f,0,0,0,63.75f,0,.82f,0,0,63.75f,0,0,.82f,0,63.75f,0,0,0,1,0});gray.postConcat(light);p.setColorFilter(new ColorMatrixColorFilter(gray));p.setAlpha(72);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));c.drawBitmap(logo,new Rect(106,80,918,892),channel,p);p.setColorFilter(null);p.setXfermode(null);p.setAlpha(255);c.restore();p.setStyle(Paint.Style.STROKE);p.setColor(Color.argb(38,255,255,255));p.setStrokeWidth(.7f);c.drawRoundRect(channel,channelWidth*.18f,channelWidth*.18f,p);p.setStyle(Paint.Style.FILL);
   if(filter!=null)filter.setImage(b);
  }
  private BroadcastRenderer broadcastRenderer;
  private Typeface broadcastFont;
  private void drawBroadcastScore(Canvas c,Paint p,JSONObject s,JSONObject h,JSONObject a){
   if(broadcastRenderer==null)broadcastRenderer=new BroadcastRenderer(getAssets());
+  broadcastRenderer.setViewport(preview.getWidth(),preview.getHeight());
   broadcastRenderer.draw(c,p,s,h,a,game.remaining());
  }
  private void drawTriple(Canvas c,Paint p,long now){
