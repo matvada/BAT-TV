@@ -33,6 +33,7 @@ public class BroadcastTest {
  private void render(BroadcastRenderer renderer,GameStore g,String name)throws Exception{
   Bitmap bitmap=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(bitmap);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
   renderer.draw(c,p,g.state,g.state.getJSONObject("home"),g.state.getJSONObject("away"),g.remaining());
+  assertEquals("Watermark must preserve opaque panel",255,Color.alpha(bitmap.getPixel(430,960)));
   int minX=1920,minY=1080,maxX=0,maxY=0;for(int y=0;y<1080;y++)for(int x=0;x<1920;x++)if(Color.alpha(bitmap.getPixel(x,y))>0){minX=Math.min(x,minX);minY=Math.min(y,minY);maxX=Math.max(x,maxX);maxY=Math.max(y,maxY);}
   assertTrue("Graphic must stay in its approved frame",minX>=210&&maxX<=590&&minY>=895&&maxY<=1040);
   assertTrue("Graphic is empty",maxX-minX>300&&maxY-minY>100);

@@ -34,7 +34,7 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
             for key in ["home", "away"] { var team = legacy[key] as! [String: Any]; team.removeValue(forKey: "logo"); legacy[key] = team }
             let migrated = try JSONDecoder().decode(Game.self, from: JSONSerialization.data(withJSONObject: legacy))
             assert(migrated.homeOnLeft && migrated.home.logo == "preset:bat" && migrated.home.score == 999)
-            assert(CTFontManagerCopyAvailablePostScriptNames() as? [String] != nil)
+            assert((CTFontManagerCopyAvailablePostScriptNames() as? [String])?.contains("Galiga-Regular") == true)
             var manual = game
             assert(manual.apply("opponentPreset", team: nil, value: nil, text: "vac", now: 1000) && manual.away.name == "VBA")
             assert(manual.apply("opponentPreset", team: nil, value: nil, text: "manual", now: 1000) && manual.away.name.isEmpty && manual.away.logo.isEmpty && manual.away.score == 999)

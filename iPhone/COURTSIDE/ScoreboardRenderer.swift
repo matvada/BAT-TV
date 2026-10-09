@@ -99,7 +99,7 @@ final class ScoreboardRenderer {
         if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors.map(\.cgColor) as CFArray, locations: locations) {
             cg.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: rect.height), options: [])
         }
-        if artwork { broadcastBat?.draw(in: CGRect(x: rect.width * 0.1, y: -rect.height * 0.2, width: rect.width * 1.05, height: rect.height * 1.45), blendMode: .multiply, alpha: 0.36) }
+        if artwork { broadcastBat?.draw(in: CGRect(x: rect.width * 0.1, y: -rect.height * 0.2, width: rect.width * 1.05, height: rect.height * 1.45), blendMode: .normal, alpha: 0.36) }
         if rect.height == 52 {
             let shine = UIBezierPath(); shine.move(to: CGPoint(x: 81, y: 0)); shine.addLine(to: CGPoint(x: 120, y: 0)); shine.addLine(to: CGPoint(x: 97, y: 52)); shine.addLine(to: CGPoint(x: 58, y: 52)); shine.close()
             cg.addPath(shine.cgPath); cg.setFillColor(UIColor.white.withAlphaComponent(0.07).cgColor); cg.fillPath()
@@ -117,8 +117,9 @@ final class ScoreboardRenderer {
     private func broadcastText(_ text: String, in rect: CGRect, size: CGFloat, edge: NSTextAlignment, padding: CGFloat = 0, cg: CGContext) {
         guard !text.isEmpty else { return }
         func line(_ size: CGFloat) -> CTLine {
-            let font = UIFont(name: broadcastFont, size: size) ?? UIFont.systemFont(ofSize: size)
-            return CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.white, .obliqueness: 0.176327]))
+            let base = UIFont(name: broadcastFont, size: size) ?? UIFont.systemFont(ofSize: size)
+            let font = UIFont(descriptor: base.fontDescriptor.withMatrix(CGAffineTransform(a: 1, b: 0, c: 0.176327, d: 1, tx: 0, ty: 0)), size: size)
+            return CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.white]))
         }
         var textLine = line(size)
         var bounds = CTLineGetBoundsWithOptions(textLine, .useGlyphPathBounds)

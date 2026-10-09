@@ -22,7 +22,7 @@ final class BroadcastRenderer {
  private void broadcastPanel(Canvas c,Paint p,float x,float y,float w,float h,int[] colors,float[] stops,boolean bat){
   c.save();c.translate(x,y+h);c.skew(-.176327f,0);c.translate(0,-h);c.clipRect(0,0,w,h);
   p.setStyle(Paint.Style.FILL);p.setAlpha(255);p.setShader(new LinearGradient(0,0,0,h,colors,stops,Shader.TileMode.CLAMP));c.drawRect(0,0,w,h,p);p.setShader(null);
-  if(bat&&broadcastBat!=null){p.setAlpha(92);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));p.setFilterBitmap(true);c.drawBitmap(broadcastBat,null,new RectF(w*.1f,-h*.2f,w*1.15f,h*1.25f),p);p.setXfermode(null);p.setAlpha(255);}
+  if(bat&&broadcastBat!=null){p.setAlpha(92);p.setXfermode(null);p.setFilterBitmap(true);c.drawBitmap(broadcastBat,null,new RectF(w*.1f,-h*.2f,w*1.15f,h*1.25f),p);p.setXfermode(null);p.setAlpha(255);}
   if(h==52){Path shine=new Path();shine.moveTo(81,0);shine.lineTo(120,0);shine.lineTo(97,52);shine.lineTo(58,52);shine.close();p.setColor(Color.argb(18,255,255,255));c.drawPath(shine,p);}
   p.setColor(Color.argb(143,255,255,255));c.drawRect(0,0,w,1,p);if(h==52){p.setColor(Color.argb(112,255,255,255));c.drawRect(0,50,w,52,p);}c.restore();
  }
