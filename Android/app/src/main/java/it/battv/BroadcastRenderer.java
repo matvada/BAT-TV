@@ -43,7 +43,7 @@ final class BroadcastRenderer {
  }
  void draw(Canvas c,Paint p,JSONObject s,JSONObject h,JSONObject a,int remaining){
   if(broadcastFont==null)broadcastFont=Typeface.createFromAsset(assets,"broadcast/Galiga.ttf");if(broadcastBat==null)broadcastBat=broadcastAsset("watermark");
-  c.save();float scale=visibleRect.width()*.205f/320*.99225f;float x=visibleRect.left+visibleRect.width()*.115f;String position=s.optString("scorePosition","left");
+  c.save();float scale=visibleRect.width()*.205f/320*1.091475f;float x=visibleRect.left+visibleRect.width()*.115f;String position=s.optString("scorePosition","left");
   if(position.equals("center"))x=visibleRect.centerX()-160*scale;else if(position.equals("right"))x=visibleRect.right-visibleRect.width()*.115f-320*scale;
   c.translate(x,visibleRect.bottom-visibleRect.height()*.043f-118*scale);c.scale(scale,scale);
   boolean homeLeft=s.optBoolean("homeOnLeft",true);
