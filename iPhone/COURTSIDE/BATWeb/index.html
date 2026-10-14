@@ -98,6 +98,8 @@ body.roleChooser #chooser{inset:calc(74px + var(--safe-top)) var(--safe-right) v
 body.roleChooser #chooser .role strong{font-size:clamp(24px,3vw,36px)}
 body.roleChooser header b{font-size:30px}
 body.remoteMode #remoteControl:not(.hidden),body.remoteMode #connection:not(.hidden){inset:calc(74px + var(--safe-top)) var(--safe-right) var(--safe-bottom) var(--safe-left);width:auto;height:auto}
+.graphicsBar:not(.soundBar){grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,1fr);height:66px}
+@media(max-height:450px){.graphicsBar:not(.soundBar){height:54px}.soundBar{height:28px}.scorePage .score{font-size:34px}.scorePage .team button{min-height:26px}.scorePage .colorControl input[type=color]{height:26px;min-height:26px}}
 </style>
 <body class="roleChooser"><header><img src="logo.png"><b>BAT <span>tv</span></b><div id="roleTitle"></div><div id="status">Scegli il tuo ruolo</div><button onclick="dispatch({type:'role',role:''})">Ruoli</button></header>
 <main>
