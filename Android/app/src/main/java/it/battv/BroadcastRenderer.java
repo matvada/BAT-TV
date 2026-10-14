@@ -22,7 +22,8 @@ final class BroadcastRenderer {
   if(broadcastFont==null)broadcastFont=Typeface.createFromAsset(assets,"broadcast/Galiga.ttf");
   if(broadcastBat==null)broadcastBat=broadcastAsset("watermark");
   float scale=Math.min(visibleRect.width()*.78f/1000,visibleRect.height()*.70f/480);
-  c.save();c.translate(visibleRect.centerX()-500*scale,visibleRect.centerY()-240*scale);c.scale(scale,scale);
+  boolean framed=kind.equals("kiss")||kind.equals("glitter");
+  c.save();c.translate(visibleRect.centerX()-500*scale,visibleRect.centerY()-(framed?280:240)*scale);c.scale(scale,scale);
   int[] purple={Color.rgb(105,60,149),Color.rgb(81,42,125),Color.rgb(35,15,58)};
   if(kind.equals("kiss")||kind.equals("glitter")){
    Path frame=new Path();frame.moveTo(65,25);frame.lineTo(975,25);frame.lineTo(935,455);frame.lineTo(25,455);frame.close();

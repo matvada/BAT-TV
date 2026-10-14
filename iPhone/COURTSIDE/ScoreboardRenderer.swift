@@ -197,7 +197,8 @@ final class ScoreboardRenderer {
         let kind = game.visibleOverlay(at: now)
         let scale = min(visibleRect.width * 0.78 / 1000, visibleRect.height * 0.70 / 480)
         cg.saveGState(); defer { cg.restoreGState() }
-        cg.translateBy(x: visibleRect.midX - 500 * scale, y: visibleRect.midY - 240 * scale)
+        let framed = kind == "kiss" || kind == "glitter"
+        cg.translateBy(x: visibleRect.midX - 500 * scale, y: visibleRect.midY - (framed ? 280 : 240) * scale)
         cg.scaleBy(x: scale, y: scale)
         let purple = [UIColor(red: 105/255, green: 60/255, blue: 149/255, alpha: 1), BATBrand.purple, UIColor(red: 35/255, green: 15/255, blue: 58/255, alpha: 1)]
         func box(_ r: CGRect) { panel(r, colors: purple, locations: [0, 0.4, 1], in: cg, artwork: true) }
