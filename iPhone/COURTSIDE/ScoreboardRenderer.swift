@@ -201,7 +201,17 @@ final class ScoreboardRenderer {
         cg.translateBy(x: visibleRect.midX - 500 * scale, y: visibleRect.midY - (framed ? 280 : 240) * scale)
         cg.scaleBy(x: scale, y: scale)
         let purple = [UIColor(red: 105/255, green: 60/255, blue: 149/255, alpha: 1), BATBrand.purple, UIColor(red: 35/255, green: 15/255, blue: 58/255, alpha: 1)]
-        func box(_ r: CGRect) { panel(r, colors: purple, locations: [0, 0.4, 1], in: cg, artwork: true) }
+        func box(_ r: CGRect) {
+            panel(r, colors: purple, locations: [0, 0.4, 1], in: cg)
+            guard let bat = broadcastBat else { return }
+            cg.saveGState()
+            let inset = r.height * 0.176327
+            let clip = UIBezierPath(); clip.move(to: CGPoint(x: r.minX + inset, y: r.minY)); clip.addLine(to: CGPoint(x: r.maxX + inset, y: r.minY)); clip.addLine(to: CGPoint(x: r.maxX, y: r.maxY)); clip.addLine(to: CGPoint(x: r.minX, y: r.maxY)); clip.close()
+            cg.addPath(clip.cgPath); cg.clip()
+            let height = r.height * 1.25, width = height * bat.size.width / bat.size.height
+            bat.draw(in: CGRect(x: r.minX + r.width * 0.68 - width / 2, y: r.midY - height / 2, width: width, height: height), blendMode: .normal, alpha: 0.30)
+            cg.restoreGState()
+        }
         func text(_ t: String, _ r: CGRect, _ s: CGFloat) { broadcastText(t, in: r, size: s, edge: .center, padding: 14, cg: cg) }
         if kind == "kiss" || kind == "glitter" {
             let frame = UIBezierPath()
@@ -209,7 +219,10 @@ final class ScoreboardRenderer {
             cg.setStrokeColor(BATBrand.purple.withAlphaComponent(0.85).cgColor); cg.setLineWidth(18); cg.addPath(frame.cgPath); cg.strokePath()
             cg.setStrokeColor(BATBrand.yellow.cgColor); cg.setLineWidth(4); cg.addPath(frame.cgPath); cg.strokePath()
             if kind == "kiss" {
-                kissArtwork?.draw(in: CGRect(x: 350, y: 35, width: 300, height: 182))
+                if let logo = kissArtwork {
+                    let width: CGFloat = 140, height = width * logo.size.height / logo.size.width
+                    logo.draw(in: CGRect(x: 780, y: 345, width: width, height: height))
+                }
             } else {
                 for i in 0..<90 {
                     let x = CGFloat((i * 137 + 53) % 930 + 35), y = CGFloat((i * 97 + 19) % 420 + 30)
@@ -226,7 +239,7 @@ final class ScoreboardRenderer {
         let title: String
         switch kind { case "timeout": title = "TIMEOUT"; case "break": title = "INTERVALLO"; case "final": title = "FINE PARTITA"; case "triple": title = "+3  TRIPLA!"; case "cheer": title = "FORZA BAT!"; default: title = game.caption }
         box(CGRect(x: 110, y: 145, width: 780, height: 175))
-        panel(CGRect(x: 110, y: 322, width: 780, height: 65), colors: [.black, UIColor(white: 0.16, alpha: 1)], locations: [0, 1], in: cg)
+        panel(CGRect(x: 110 - 65 * 0.176327, y: 320, width: 780, height: 65), colors: [.black, UIColor(white: 0.16, alpha: 1)], locations: [0, 1], in: cg)
         text(title, CGRect(x: 135, y: 160, width: 730, height: 135), kind == "caption" ? 58 : 96)
         let left = game.homeOnLeft ? game.home : game.away, right = game.homeOnLeft ? game.away : game.home
         let footer = ["timeout", "break", "final"].contains(kind) ? "\(left.name)  \(left.score) – \(right.score)  \(right.name)" : kind == "triple" ? "BOMBA DA TRE" : kind == "cheer" ? "TUTTI INSIEME" : "BAT TV"
