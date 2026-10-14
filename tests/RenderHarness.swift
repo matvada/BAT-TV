@@ -40,7 +40,15 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
             var manual = game
             assert(manual.apply("opponentPreset", team: nil, value: nil, text: "vac", now: 1000) && manual.away.name == "VBA")
             assert(manual.apply("opponentPreset", team: nil, value: nil, text: "manual", now: 1000) && manual.away.name.isEmpty && manual.away.logo.isEmpty && manual.away.score == 999)
-            try "PASS: native rendering, side reversal, clock off, 999, overtime, v38 migration, VBA, manual preset".write(to: folder.appendingPathComponent("result.txt"), atomically: true, encoding: .utf8)
+            game.home.score = 32; game.away.score = 28
+            game.caption = "UN TITOLO MOLTO LUNGO DA CONTENERE NEL CARTELLO"
+            for kind in ["kiss", "glitter", "timeout", "triple", "cheer", "break", "final", "caption"] {
+                assert(game.apply("overlay", team: nil, value: 15, text: kind, now: 1000))
+                guard let cg = renderer.image(for: game, at: 1000, viewport: CGSize(width: 852, height: 393)), let png = UIImage(cgImage: cg).pngData() else { throw NSError(domain: "Card render", code: 3) }
+                try png.write(to: folder.appendingPathComponent("card-" + kind + ".png"))
+            }
+            assert(Bundle.main.path(forResource: "kiss-cam", ofType: "jpg", inDirectory: "BATWeb/broadcast") != nil)
+            try "PASS: native rendering, side reversal, clock off, 999, overtime, v38 migration, VBA, manual preset, broadcast cards".write(to: folder.appendingPathComponent("result.txt"), atomically: true, encoding: .utf8)
         } catch {
             let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             try? String(describing: error).write(to: folder.appendingPathComponent("error.txt"), atomically: true, encoding: .utf8)

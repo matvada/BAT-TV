@@ -16,6 +16,38 @@ final class BroadcastRenderer {
  void setViewport(int width,int height){if(width>=height&&height>0)visibleRect=visibleVideoRect(width,height);}
  BroadcastRenderer(AssetManager assets){this.assets=assets;}
  private Typeface broadcastFont;
+ private Bitmap kissArtwork;
+ void drawCard(Canvas c,Paint p,JSONObject s,String kind,long now){
+  if(kind.isEmpty())return;
+  if(broadcastFont==null)broadcastFont=Typeface.createFromAsset(assets,"broadcast/Galiga.ttf");
+  if(broadcastBat==null)broadcastBat=broadcastAsset("watermark");
+  float scale=Math.min(visibleRect.width()*.78f/1000,visibleRect.height()*.70f/480);
+  c.save();c.translate(visibleRect.centerX()-500*scale,visibleRect.centerY()-240*scale);c.scale(scale,scale);
+  int[] purple={Color.rgb(105,60,149),Color.rgb(81,42,125),Color.rgb(35,15,58)};
+  if(kind.equals("kiss")||kind.equals("glitter")){
+   Path frame=new Path();frame.moveTo(65,25);frame.lineTo(975,25);frame.lineTo(935,455);frame.lineTo(25,455);frame.close();
+   p.setStyle(Paint.Style.STROKE);p.setColor(Color.argb(217,81,42,125));p.setStrokeWidth(18);c.drawPath(frame,p);p.setColor(Color.rgb(255,254,15));p.setStrokeWidth(4);c.drawPath(frame,p);p.setStyle(Paint.Style.FILL);
+   if(kind.equals("kiss")){
+    if(kissArtwork==null)try(java.io.InputStream input=assets.open("broadcast/kiss-cam.jpg")){kissArtwork=BitmapFactory.decodeStream(input);}catch(java.io.IOException ignored){}
+    if(kissArtwork!=null){p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.drawBitmap(kissArtwork,null,new RectF(350,35,650,217),p);}
+   }else for(int i=0;i<90;i++){
+    float x=(i*137+53)%930+35,y=(i*97+19)%420+30,pulse=(float)(.5+.5*Math.sin(now/240.0+i*1.7)),r=2+pulse*(i%4+2);
+    p.setColor(i%3==0?Color.rgb(255,254,15):Color.WHITE);p.setAlpha(Math.round((.25f+pulse*.75f)*255));
+    Path star=new Path();star.moveTo(x,y-r*2);star.lineTo(x+r*.45f,y-r*.45f);star.lineTo(x+r*2,y);star.lineTo(x+r*.45f,y+r*.45f);star.lineTo(x,y+r*2);star.lineTo(x-r*.45f,y+r*.45f);star.lineTo(x-r*2,y);star.lineTo(x-r*.45f,y-r*.45f);star.close();c.drawPath(star,p);
+   }
+   broadcastPanel(c,p,245,365,510,75,purple,new float[]{0,.4f,1},true);
+   broadcastText(c,p,kind.equals("kiss")?"KISS CAM":"GLITTER CAM",260,370,480,60,65,Paint.Align.CENTER,14);
+  }else{
+   String title=kind.equals("timeout")?"TIMEOUT":kind.equals("break")?"INTERVALLO":kind.equals("final")?"FINE PARTITA":kind.equals("triple")?"+3  TRIPLA!":kind.equals("cheer")?"FORZA BAT!":s.optString("caption");
+   broadcastPanel(c,p,110,145,780,175,purple,new float[]{0,.4f,1},true);
+   broadcastPanel(c,p,110,322,780,65,new int[]{Color.BLACK,Color.rgb(41,41,41)},new float[]{0,1},false);
+   broadcastText(c,p,title,135,160,730,135,kind.equals("caption")?58:96,Paint.Align.CENTER,14);
+   JSONObject left=s.optJSONObject(s.optBoolean("homeOnLeft",true)?"home":"away"),right=s.optJSONObject(s.optBoolean("homeOnLeft",true)?"away":"home");
+   String footer=Arrays.asList("timeout","break","final").contains(kind)?left.optString("name")+"  "+left.optInt("score")+" – "+right.optInt("score")+"  "+right.optString("name"):kind.equals("triple")?"BOMBA DA TRE":kind.equals("cheer")?"TUTTI INSIEME":"BAT TV";
+   broadcastText(c,p,footer,135,327,730,52,46,Paint.Align.CENTER,14);
+  }
+  p.setAlpha(255);p.setTextSkewX(0);p.setStyle(Paint.Style.FILL);c.restore();
+ }
  private final HashMap<String,Bitmap> crestCache=new HashMap<>();
  private Bitmap broadcastBat;
  private Bitmap broadcastAsset(String name){try(java.io.InputStream input=assets.open("broadcast/"+name+".png")){return BitmapFactory.decodeStream(input);}catch(java.io.IOException e){return null;}}
