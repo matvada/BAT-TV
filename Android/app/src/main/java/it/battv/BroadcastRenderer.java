@@ -30,7 +30,7 @@ final class BroadcastRenderer {
    p.setStyle(Paint.Style.STROKE);p.setColor(Color.argb(217,81,42,125));p.setStrokeWidth(18);c.drawPath(frame,p);p.setColor(Color.rgb(255,254,15));p.setStrokeWidth(4);c.drawPath(frame,p);p.setStyle(Paint.Style.FILL);
    if(kind.equals("kiss")){
     if(kissArtwork==null)try(java.io.InputStream input=assets.open("broadcast/kiss-cam.jpg")){kissArtwork=BitmapFactory.decodeStream(input);}catch(java.io.IOException ignored){}
-    if(kissArtwork!=null){p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);float height=160f*kissArtwork.getHeight()/kissArtwork.getWidth();c.drawBitmap(kissArtwork,null,new RectF(750,335,910,335+height),p);}
+    if(kissArtwork!=null){p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);float height=140f*kissArtwork.getHeight()/kissArtwork.getWidth();c.drawBitmap(kissArtwork,null,new RectF(780,345,920,345+height),p);}
    }else for(int i=0;i<90;i++){
     float x=(i*137+53)%930+35,y=(i*97+19)%420+30,pulse=(float)(.5+.5*Math.sin(now/240.0+i*1.7)),r=2+pulse*(i%4+2);
     p.setColor(i%3==0?Color.rgb(255,254,15):Color.WHITE);p.setAlpha(Math.round((.25f+pulse*.75f)*255));

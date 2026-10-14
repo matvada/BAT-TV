@@ -220,8 +220,8 @@ final class ScoreboardRenderer {
             cg.setStrokeColor(BATBrand.yellow.cgColor); cg.setLineWidth(4); cg.addPath(frame.cgPath); cg.strokePath()
             if kind == "kiss" {
                 if let logo = kissArtwork {
-                    let width: CGFloat = 160, height = width * logo.size.height / logo.size.width
-                    logo.draw(in: CGRect(x: 750, y: 335, width: width, height: height))
+                    let width: CGFloat = 140, height = width * logo.size.height / logo.size.width
+                    logo.draw(in: CGRect(x: 780, y: 345, width: width, height: height))
                 }
             } else {
                 for i in 0..<90 {
