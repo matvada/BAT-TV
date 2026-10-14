@@ -36,6 +36,10 @@ final class ScoreboardRenderer {
             if game.showScore {
                 drawBroadcastScore(game, at: serverNow, in: cg)
             }
+            if !game.visibleOverlay(at: serverNow).isEmpty {
+                drawBroadcastCard(game, at: serverNow, in: cg)
+            }
+            /* Legacy renderers retained for reference; official cards use broadcast geometry.
             switch game.visibleOverlay(at: serverNow) {
             case "kiss": drawKiss(in: cg)
             case "triple": drawTriple(in: cg, at: serverNow)
@@ -52,6 +56,7 @@ final class ScoreboardRenderer {
                 label(game.caption, in: CGRect(x: 86, y: 410, width: 1108, height: 70), size: 45, alignment: .left)
             default: break
             }
+            */
             drawChannel(in: cg)
         }
         return image.cgImage
@@ -182,6 +187,50 @@ final class ScoreboardRenderer {
         let height = UIFont.systemFont(ofSize: size, weight: .heavy).lineHeight
         label(title, in: CGRect(x: x, y: centerY - height / 2, width: width, height: height),
               size: size, color: color)
+    }
+
+    private lazy var kissArtwork: UIImage? = {
+        guard let path = Bundle.main.path(forResource: "kiss-cam", ofType: "jpg", inDirectory: "BATWeb/broadcast") else { return nil }
+        return UIImage(contentsOfFile: path)
+    }()
+    private func drawBroadcastCard(_ game: Game, at now: Double, in cg: CGContext) {
+        let kind = game.visibleOverlay(at: now)
+        let scale = min(visibleRect.width * 0.78 / 1000, visibleRect.height * 0.70 / 480)
+        cg.saveGState(); defer { cg.restoreGState() }
+        let framed = kind == "kiss" || kind == "glitter"
+        cg.translateBy(x: visibleRect.midX - 500 * scale, y: visibleRect.midY - (framed ? 280 : 240) * scale)
+        cg.scaleBy(x: scale, y: scale)
+        let purple = [UIColor(red: 105/255, green: 60/255, blue: 149/255, alpha: 1), BATBrand.purple, UIColor(red: 35/255, green: 15/255, blue: 58/255, alpha: 1)]
+        func box(_ r: CGRect) { panel(r, colors: purple, locations: [0, 0.4, 1], in: cg, artwork: true) }
+        func text(_ t: String, _ r: CGRect, _ s: CGFloat) { broadcastText(t, in: r, size: s, edge: .center, padding: 14, cg: cg) }
+        if kind == "kiss" || kind == "glitter" {
+            let frame = UIBezierPath()
+            frame.move(to: CGPoint(x: 65, y: 25)); frame.addLine(to: CGPoint(x: 975, y: 25)); frame.addLine(to: CGPoint(x: 935, y: 455)); frame.addLine(to: CGPoint(x: 25, y: 455)); frame.close()
+            cg.setStrokeColor(BATBrand.purple.withAlphaComponent(0.85).cgColor); cg.setLineWidth(18); cg.addPath(frame.cgPath); cg.strokePath()
+            cg.setStrokeColor(BATBrand.yellow.cgColor); cg.setLineWidth(4); cg.addPath(frame.cgPath); cg.strokePath()
+            if kind == "kiss" {
+                kissArtwork?.draw(in: CGRect(x: 350, y: 35, width: 300, height: 182))
+            } else {
+                for i in 0..<90 {
+                    let x = CGFloat((i * 137 + 53) % 930 + 35), y = CGFloat((i * 97 + 19) % 420 + 30)
+                    let pulse = CGFloat(0.5 + 0.5 * sin(now / 240 + Double(i) * 1.7))
+                    let r = 2 + pulse * CGFloat(i % 4 + 2)
+                    cg.setFillColor((i.isMultiple(of: 3) ? BATBrand.yellow : UIColor.white).withAlphaComponent(0.25 + pulse * 0.75).cgColor)
+                    let star = UIBezierPath(); star.move(to: CGPoint(x: x, y: y-r*2)); star.addLine(to: CGPoint(x: x+r*0.45, y: y-r*0.45)); star.addLine(to: CGPoint(x: x+r*2, y: y)); star.addLine(to: CGPoint(x: x+r*0.45, y: y+r*0.45)); star.addLine(to: CGPoint(x: x, y: y+r*2)); star.addLine(to: CGPoint(x: x-r*0.45, y: y+r*0.45)); star.addLine(to: CGPoint(x: x-r*2, y: y)); star.addLine(to: CGPoint(x: x-r*0.45, y: y-r*0.45)); star.close(); cg.addPath(star.cgPath); cg.fillPath()
+                }
+            }
+            box(CGRect(x: 245, y: 365, width: 510, height: 75))
+            text(kind == "kiss" ? "KISS CAM" : "GLITTER CAM", CGRect(x: 260, y: 370, width: 480, height: 60), 65)
+            return
+        }
+        let title: String
+        switch kind { case "timeout": title = "TIMEOUT"; case "break": title = "INTERVALLO"; case "final": title = "FINE PARTITA"; case "triple": title = "+3  TRIPLA!"; case "cheer": title = "FORZA BAT!"; default: title = game.caption }
+        box(CGRect(x: 110, y: 145, width: 780, height: 175))
+        panel(CGRect(x: 110, y: 322, width: 780, height: 65), colors: [.black, UIColor(white: 0.16, alpha: 1)], locations: [0, 1], in: cg)
+        text(title, CGRect(x: 135, y: 160, width: 730, height: 135), kind == "caption" ? 58 : 96)
+        let left = game.homeOnLeft ? game.home : game.away, right = game.homeOnLeft ? game.away : game.home
+        let footer = ["timeout", "break", "final"].contains(kind) ? "\(left.name)  \(left.score) – \(right.score)  \(right.name)" : kind == "triple" ? "BOMBA DA TRE" : kind == "cheer" ? "TUTTI INSIEME" : "BAT TV"
+        text(footer, CGRect(x: 135, y: 327, width: 730, height: 52), 46)
     }
 
     private func drawKiss(in cg: CGContext) {

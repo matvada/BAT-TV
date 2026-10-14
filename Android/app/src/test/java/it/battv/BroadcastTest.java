@@ -30,6 +30,18 @@ public class BroadcastTest {
   assertTrue(g.apply(command("center","scorePosition","center")));assertEquals("center",g.state.getString("scorePosition"));assertEquals(32,g.state.getJSONObject("home").getInt("score"));
   assertFalse(g.apply(command("bad","scorePosition","top")));assertEquals("center",g.state.getString("scorePosition"));
  }
+ @Test public void broadcastCardsFitAndGlitterAnimates()throws Exception{
+  BroadcastRenderer renderer=new BroadcastRenderer(RuntimeEnvironment.getApplication().getAssets());GameStore g=new GameStore();g.state.getJSONObject("home").put("score",32);g.state.getJSONObject("away").put("score",28);g.state.put("caption","UN TITOLO MOLTO LUNGO DA CONTENERE NEL CARTELLO");
+  for(String kind:new String[]{"kiss","glitter","timeout","triple","cheer","break","final","caption"}){
+   assertTrue(g.apply(command(kind,"overlay",kind).put("value",15)));
+   for(int[] viewport:new int[][]{{852,393},{1024,768},{1280,720}}){
+    renderer.setViewport(viewport[0],viewport[1]);RectF visible=BroadcastRenderer.visibleVideoRect(viewport[0],viewport[1]);Bitmap b=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);renderer.drawCard(new Canvas(b),new Paint(Paint.ANTI_ALIAS_FLAG),g.state,kind,1000);
+    int pixels=0;for(int y=0;y<720;y++)for(int x=0;x<1280;x++)if(Color.alpha(b.getPixel(x,y))>0){pixels++;assertTrue("Card cropped",visible.contains(x,y));}assertTrue("Empty card",pixels>1000);
+    if(viewport[0]==852){File dir=new File("build/native-render-check");dir.mkdirs();try(FileOutputStream out=new FileOutputStream(new File(dir,"card-"+kind+".png"))){b.compress(Bitmap.CompressFormat.PNG,100,out);}}
+   }
+  }
+  Bitmap a=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888),b=Bitmap.createBitmap(1280,720,Bitmap.Config.ARGB_8888);renderer.drawCard(new Canvas(a),new Paint(),g.state,"glitter",1000);renderer.drawCard(new Canvas(b),new Paint(),g.state,"glitter",1200);assertFalse("Glitter must animate",a.sameAs(b));
+ }
  @Test public void nativeRenderingFitsFrame()throws Exception{
   BroadcastRenderer renderer=new BroadcastRenderer(RuntimeEnvironment.getApplication().getAssets());GameStore g=new GameStore();g.apply(command("preset","opponentPreset","hub"));g.state.getJSONObject("home").put("score",32).put("fouls",2).put("timeouts",1);g.state.getJSONObject("away").put("score",28).put("fouls",3);
   render(renderer,g,"broadcast-home-left");
