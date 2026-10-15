@@ -14,6 +14,13 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
         do {
             let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let renderer = ScoreboardRenderer()
+            var stable = 0
+            assert(BATStreamPolicy.bitrate(current: 1_800_000, ceiling: 1_800_000, queue: 2, bytesPerSecond: 150_000, stable: &stable) == 684_000)
+            assert(BATStreamPolicy.bitrate(current: 684_000, ceiling: 1_800_000, queue: 10, bytesPerSecond: 0, stable: &stable) == 400_000)
+            for _ in 0..<19 { assert(BATStreamPolicy.bitrate(current: 400_000, ceiling: 1_800_000, queue: 0, bytesPerSecond: 250_000, stable: &stable) == 400_000) }
+            assert(BATStreamPolicy.bitrate(current: 400_000, ceiling: 1_800_000, queue: 0, bytesPerSecond: 250_000, stable: &stable) == 475_000)
+            stable = 19
+            assert(BATStreamPolicy.bitrate(current: 1_800_000, ceiling: 1_800_000, queue: 0, bytesPerSecond: 250_000, stable: &stable) == 1_800_000)
             var game = Game.fresh(now: 1000)
             game.home.score = 32; game.home.fouls = 2; game.home.timeouts = 1
             assert(game.apply("opponentPreset", team: nil, value: nil, text: "hub", now: 1000))
@@ -25,6 +32,14 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
                 NSLog("BAT render check: %@ saved", name)
             }
             try save("broadcast-home-left")
+            for dimensions in [CGSize(width: 854, height: 480), CGSize(width: 1280, height: 720), CGSize(width: 1920, height: 1080)] {
+                renderer.outputSize = dimensions
+                let a = renderer.image(for: game, at: 1000, viewport: CGSize(width: 852, height: 393))!
+                let b = renderer.image(for: game, at: 1000, viewport: CGSize(width: 1024, height: 768))!
+                assert(a.width == Int(dimensions.width) && a.height == Int(dimensions.height))
+                assert(UIImage(cgImage: a).pngData() == UIImage(cgImage: b).pngData(), "Broadcast geometry must be independent of preview")
+            }
+            renderer.outputSize = CGSize(width: 1920, height: 1080)
             game.homeOnLeft = false; game.quarter = 3; game.clockEnabled = false; game.home.score = 128
             try save("broadcast-home-right-clock-off")
             game.homeOnLeft = true; game.clockEnabled = true; game.quarter = 12; game.home.score = 999; game.away.score = 999
