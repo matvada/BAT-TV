@@ -14,6 +14,12 @@ import java.io.*;
 @Config(sdk=35)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class BroadcastTest {
+ @Test public void audioResamplingPreservesDurationAndLevel(){
+  byte[] pcm=new byte[64000];for(int i=0;i<pcm.length;i+=2){pcm[i]=(byte)0xe8;pcm[i+1]=3;}
+  byte[] result=Soundboard.resample48k(pcm);assertEquals(96000,result.length);
+  for(int i=0;i<result.length;i+=2)assertEquals(1000,(short)((result[i]&255)|(result[i+1]<<8)));
+  assertEquals(0,Soundboard.resample48k(new byte[0]).length);
+ }
  private JSONObject command(String id,String action,String text)throws Exception{return new JSONObject().put("id",id).put("action",action).put("text",text);}
  @Test public void presetAndManualPreserveMatch()throws Exception{
   GameStore g=new GameStore();g.state.getJSONObject("away").put("score",28).put("fouls",3);g.state.put("quarter",2);
