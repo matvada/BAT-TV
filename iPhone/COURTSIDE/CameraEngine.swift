@@ -239,7 +239,9 @@ final class CameraEngine: ObservableObject {
             try await mixer.setFrameRate(30)
             try await mixer.attachAudio(microphone)
             var audioMix = AudioMixerSettings(sampleRate: 48_000, channels: 1)
-            audioMix.tracks[1] = .default
+            // Leave headroom: two full-volume tracks can saturate the PCM sum.
+            audioMix.tracks[0] = AudioMixerTrackSettings(volume: 0.75)
+            audioMix.tracks[1] = AudioMixerTrackSettings(volume: 0.25)
             await mixer.setAudioMixerSettings(audioMix)
             await mixer.addOutput(stream)
             await stream.addOutput(preview)

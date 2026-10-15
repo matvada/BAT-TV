@@ -60,7 +60,7 @@ final class Soundboard extends CustomAudioEffect {
   for(int i=0;i<count;i+=2){
    int mic=(short)((output[i]&255)|(output[i+1]<<8));
    int effect=(short)((cue[offset+i]&255)|(cue[offset+i+1]<<8));
-   int mixed=Math.max(-32768,Math.min(32767,Math.round(mic*.78f+effect*.62f)));
+   int mixed=Math.max(-32768,Math.min(32767,Math.round(mic*.75f+effect*.25f)));
    output[i]=(byte)mixed;output[i+1]=(byte)(mixed>>8);
   }
   offset+=count;
