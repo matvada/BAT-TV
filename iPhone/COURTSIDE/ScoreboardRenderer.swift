@@ -190,8 +190,7 @@ final class ScoreboardRenderer {
     }
 
     private lazy var kissArtwork: UIImage? = {
-        guard let path = Bundle.main.path(forResource: "kiss-cam", ofType: "jpg", inDirectory: "BATWeb/broadcast") else { return nil }
-        return UIImage(contentsOfFile: path)
+        return asset("kiss-crest")
     }()
     private func drawBroadcastCard(_ game: Game, at now: Double, in cg: CGContext) {
         let kind = game.visibleOverlay(at: now)
@@ -219,10 +218,21 @@ final class ScoreboardRenderer {
             cg.setStrokeColor(BATBrand.purple.withAlphaComponent(0.85).cgColor); cg.setLineWidth(18); cg.addPath(frame.cgPath); cg.strokePath()
             cg.setStrokeColor(BATBrand.yellow.cgColor); cg.setLineWidth(4); cg.addPath(frame.cgPath); cg.strokePath()
             if kind == "kiss" {
-                if let logo = kissArtwork {
-                    let width: CGFloat = 140, height = width * logo.size.height / logo.size.width
-                    logo.draw(in: CGRect(x: 780, y: 345, width: width, height: height))
+                let hearts: [(CGFloat, CGFloat, CGFloat, CGFloat)] = [(67, 35, 19, -0.25), (97, 21, 12, 0.2), (948, 20, 12, -0.2), (972, 40, 19, 0.25), (52, 155, 12, -0.2), (38, 300, 13, -0.15), (958, 170, 12, 0.2), (945, 310, 15, 0.15), (30, 438, 19, -0.2), (64, 445, 12, 0.15), (906, 445, 12, -0.15), (938, 438, 19, 0.2)]
+                for (x, y, radius, angle) in hearts {
+                    cg.saveGState(); cg.translateBy(x: x, y: y); cg.rotate(by: angle); cg.scaleBy(x: radius, y: radius)
+                    let heart = UIBezierPath(); heart.move(to: CGPoint(x: 0, y: 0.88)); heart.addCurve(to: CGPoint(x: -0.95, y: -0.25), controlPoint1: CGPoint(x: -0.3, y: 0.58), controlPoint2: CGPoint(x: -0.95, y: 0.2)); heart.addCurve(to: CGPoint(x: 0, y: -0.58), controlPoint1: CGPoint(x: -0.95, y: -0.95), controlPoint2: CGPoint(x: -0.3, y: -1)); heart.addCurve(to: CGPoint(x: 0.95, y: -0.25), controlPoint1: CGPoint(x: 0.3, y: -1), controlPoint2: CGPoint(x: 0.95, y: -0.95)); heart.addCurve(to: CGPoint(x: 0, y: 0.88), controlPoint1: CGPoint(x: 0.95, y: 0.2), controlPoint2: CGPoint(x: 0.3, y: 0.58)); heart.close()
+                    cg.setFillColor(UIColor(red: 100/255, green: 22/255, blue: 164/255, alpha: 1).cgColor); cg.addPath(heart.cgPath); cg.fillPath(); cg.setStrokeColor(UIColor(red: 195/255, green: 125/255, blue: 247/255, alpha: 1).cgColor); cg.setLineWidth(0.16); cg.addPath(heart.cgPath); cg.strokePath(); cg.restoreGState()
                 }
+                panel(CGRect(x: 165, y: 365, width: 670, height: 82), colors: purple, locations: [0, 0.4, 1], in: cg)
+                cg.setFillColor(BATBrand.yellow.cgColor); cg.fill(CGRect(x: 179.46, y: 365, width: 670, height: 2))
+                text("KISS", CGRect(x: 200, y: 370, width: 185, height: 70), 84)
+                text("CAM", CGRect(x: 615, y: 370, width: 185, height: 70), 84)
+                if let logo = kissArtwork {
+                    let width: CGFloat = 230, height = width * logo.size.height / logo.size.width
+                    logo.draw(in: CGRect(x: 500 - width / 2, y: 455 - height, width: width, height: height))
+                }
+                return
             } else {
                 for i in 0..<90 {
                     let x = CGFloat((i * 137 + 53) % 930 + 35), y = CGFloat((i * 97 + 19) % 420 + 30)

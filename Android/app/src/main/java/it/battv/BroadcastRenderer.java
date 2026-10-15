@@ -29,15 +29,20 @@ final class BroadcastRenderer {
    Path frame=new Path();frame.moveTo(65,25);frame.lineTo(975,25);frame.lineTo(935,455);frame.lineTo(25,455);frame.close();
    p.setStyle(Paint.Style.STROKE);p.setColor(Color.argb(217,81,42,125));p.setStrokeWidth(18);c.drawPath(frame,p);p.setColor(Color.rgb(255,254,15));p.setStrokeWidth(4);c.drawPath(frame,p);p.setStyle(Paint.Style.FILL);
    if(kind.equals("kiss")){
-    if(kissArtwork==null)try(java.io.InputStream input=assets.open("broadcast/kiss-cam.jpg")){kissArtwork=BitmapFactory.decodeStream(input);}catch(java.io.IOException ignored){}
-    if(kissArtwork!=null){p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);float height=140f*kissArtwork.getHeight()/kissArtwork.getWidth();c.drawBitmap(kissArtwork,null,new RectF(780,345,920,345+height),p);}
+    float[][] hearts={{67,35,19,-.25f},{97,21,12,.2f},{948,20,12,-.2f},{972,40,19,.25f},{52,155,12,-.2f},{38,300,13,-.15f},{958,170,12,.2f},{945,310,15,.15f},{30,438,19,-.2f},{64,445,12,.15f},{906,445,12,-.15f},{938,438,19,.2f}};
+    for(float[] heart:hearts)drawHeart(c,p,heart[0],heart[1],heart[2],heart[3]);
+    broadcastPanel(c,p,165,365,670,82,purple,new float[]{0,.4f,1},false);
+    p.setColor(Color.rgb(255,254,15));c.drawRect(179.46f,365,849.46f,367,p);
+    broadcastText(c,p,"KISS",200,370,185,70,84,Paint.Align.CENTER,14);broadcastText(c,p,"CAM",615,370,185,70,84,Paint.Align.CENTER,14);
+    if(kissArtwork==null)kissArtwork=broadcastAsset("kiss-crest");
+    if(kissArtwork!=null){p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);float height=230f*kissArtwork.getHeight()/kissArtwork.getWidth();c.drawBitmap(kissArtwork,null,new RectF(385,455-height,615,455),p);}
    }else for(int i=0;i<90;i++){
     float x=(i*137+53)%930+35,y=(i*97+19)%420+30,pulse=(float)(.5+.5*Math.sin(now/240.0+i*1.7)),r=2+pulse*(i%4+2);
     p.setColor(i%3==0?Color.rgb(255,254,15):Color.WHITE);p.setAlpha(Math.round((.25f+pulse*.75f)*255));
     Path star=new Path();star.moveTo(x,y-r*2);star.lineTo(x+r*.45f,y-r*.45f);star.lineTo(x+r*2,y);star.lineTo(x+r*.45f,y+r*.45f);star.lineTo(x,y+r*2);star.lineTo(x-r*.45f,y+r*.45f);star.lineTo(x-r*2,y);star.lineTo(x-r*.45f,y-r*.45f);star.close();c.drawPath(star,p);
    }
-   cardPanel(c,p,245,365,510,75,purple);
-   broadcastText(c,p,kind.equals("kiss")?"KISS CAM":"GLITTER CAM",260,370,480,60,65,Paint.Align.CENTER,14);
+   if(!kind.equals("kiss")){cardPanel(c,p,245,365,510,75,purple);
+   broadcastText(c,p,"GLITTER CAM",260,370,480,60,65,Paint.Align.CENTER,14);}
   }else{
    String title=kind.equals("timeout")?"TIMEOUT":kind.equals("break")?"INTERVALLO":kind.equals("final")?"FINE PARTITA":kind.equals("triple")?"+3  TRIPLA!":kind.equals("cheer")?"FORZA BAT!":s.optString("caption");
    cardPanel(c,p,110,145,780,175,purple);
@@ -50,6 +55,11 @@ final class BroadcastRenderer {
   p.setAlpha(255);p.setTextSkewX(0);p.setStyle(Paint.Style.FILL);c.restore();
  }
  private final HashMap<String,Bitmap> crestCache=new HashMap<>();
+ private void drawHeart(Canvas c,Paint p,float x,float y,float radius,float angle){
+  c.save();c.translate(x,y);c.rotate((float)Math.toDegrees(angle));c.scale(radius,radius);
+  Path h=new Path();h.moveTo(0,.88f);h.cubicTo(-.3f,.58f,-.95f,.2f,-.95f,-.25f);h.cubicTo(-.95f,-.95f,-.3f,-1,0,-.58f);h.cubicTo(.3f,-1,.95f,-.95f,.95f,-.25f);h.cubicTo(.95f,.2f,.3f,.58f,0,.88f);h.close();
+  p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(100,22,164));c.drawPath(h,p);p.setStyle(Paint.Style.STROKE);p.setColor(Color.rgb(195,125,247));p.setStrokeWidth(.16f);c.drawPath(h,p);p.setStyle(Paint.Style.FILL);c.restore();
+ }
  private Bitmap broadcastBat;
  private void cardPanel(Canvas c,Paint p,float x,float y,float w,float h,int[] colors){
   broadcastPanel(c,p,x,y,w,h,colors,new float[]{0,.4f,1},false);

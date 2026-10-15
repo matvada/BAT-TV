@@ -47,7 +47,7 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
                 guard let cg = renderer.image(for: game, at: 1000, viewport: CGSize(width: 852, height: 393)), let png = UIImage(cgImage: cg).pngData() else { throw NSError(domain: "Card render", code: 3) }
                 try png.write(to: folder.appendingPathComponent("card-" + kind + ".png"))
             }
-            assert(Bundle.main.path(forResource: "kiss-cam", ofType: "jpg", inDirectory: "BATWeb/broadcast") != nil)
+            assert(Bundle.main.path(forResource: "kiss-crest", ofType: "png", inDirectory: "BATWeb/broadcast") != nil)
             try "PASS: native rendering, side reversal, clock off, 999, overtime, v38 migration, VBA, manual preset, broadcast cards".write(to: folder.appendingPathComponent("result.txt"), atomically: true, encoding: .utf8)
         } catch {
             let folder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
