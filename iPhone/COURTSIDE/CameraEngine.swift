@@ -332,10 +332,11 @@ final class CameraEngine: ObservableObject {
         streamGeneration += 1
         reconnectTask?.cancel()
         reconnectTask = nil
-        connecting = false
+        connecting = true
         publishing = false
         try? await stream.close()
         try? await connection.close()
+        connecting = false
         publishing = false
         bridge.setCameraStatus(ready: cameraReady, publishing: false)
         if finishedMatch { bridge.finishMatch() }
@@ -482,6 +483,7 @@ final class CameraEngine: ObservableObject {
                     guard !Task.isCancelled, generation == self.streamGeneration else { return }
                     try await self.stream.publish(key)
                     guard !Task.isCancelled, generation == self.streamGeneration else { return }
+                    await self.bitrateStrategy.setCeiling(self.quality == 480 ? 900_000 : self.quality == 720 ? 1_800_000 : 3_000_000)
                     self.publishing = true
                     self.bridge.setCameraStatus(ready: true, publishing: true)
                     self.message = "Invio ripristinato · verifica che Facebook abbia ripreso la diretta"

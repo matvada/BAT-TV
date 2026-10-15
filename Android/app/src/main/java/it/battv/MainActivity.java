@@ -109,7 +109,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   if(!missing.isEmpty()){requestPermissions(missing.toArray(new String[0]),8);return false;}return true;
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);boolean all=true;for(int n:g)if(n!=PackageManager.PERMISSION_GRANTED)all=false;if(all)activateRole();else status("Consenti i permessi per usare Bluetooth e Camera");}
- private void setRole(String selected){if(live){status("Ferma prima la diretta per cambiare ruolo");return;}if(!Arrays.asList("camera","regia","scores","").contains(selected))return;
+ private void setRole(String selected){if(live||wantsLive){status("Ferma prima la diretta per cambiare ruolo");return;}if(!Arrays.asList("camera","regia","scores","").contains(selected))return;
   stopCamera();link.close();authenticated=false;for(Runnable timeout:pending.values())main.removeCallbacks(timeout);pending.clear();role=selected;pin=String.format(Locale.US,"%06d",new java.security.SecureRandom().nextInt(1000000));
   if(role.equals("camera")){try{game.state.put("overlay","").put("overlayUntil",0);getPreferences(0).edit().putString("game",game.state.toString()).apply();}catch(JSONException ignored){}}
   try{emit(new JSONObject().put("type","role").put("role",role).put("pin",pin));}catch(JSONException ignored){}
@@ -118,12 +118,16 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void activateRole(){if(role.equals("camera")){link.host();try{emit(game.envelope(ready,live));emit(new JSONObject().put("type","quality").put("height",videoHeight));}catch(JSONException ignored){}}else link.scan();}
  private void setQuality(int height){
   if(height!=480&&height!=720&&height!=1080)return;
-  if(live||(camera!=null&&camera.isStreaming())){status("Ferma l’invio prima di cambiare risoluzione");return;}
+  if(live||wantsLive||(camera!=null&&camera.isStreaming())){status("Ferma l’invio prima di cambiare risoluzione");return;}
   boolean restart=ready;if(restart)stopCamera();videoHeight=height;getPreferences(0).edit().putInt("videoHeight",height).apply();
   if(restart)startCamera();try{emit(new JSONObject().put("type","quality").put("height",videoHeight));}catch(JSONException ignored){}
  }
  private void focusCamera(double x,double y){
   if(!ready||camera==null)return;
+  double scale=Math.min(preview.getWidth()/1280.0,preview.getHeight()/720.0);if(scale<=0)return;
+  x=(x*preview.getWidth()-(preview.getWidth()-1280*scale)/2)/(1280*scale);
+  y=(y*preview.getHeight()-(preview.getHeight()-720*scale)/2)/(720*scale);
+  if(x<0||x>1||y<0||y>1)return;
   long now=android.os.SystemClock.uptimeMillis();
   MotionEvent event=MotionEvent.obtain(now,now,MotionEvent.ACTION_UP,(float)(x*preview.getWidth()),(float)(y*preview.getHeight()),0);
   try{if(!camera.tapToFocus(preview,event))status("Messa a fuoco non disponibile");}catch(Exception e){status("Messa a fuoco non disponibile");}finally{event.recycle();}
