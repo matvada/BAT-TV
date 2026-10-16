@@ -5,7 +5,7 @@ import CoreImage
 @MainActor
 final class ScoreboardRenderer {
     private let size = CGSize(width: 1280, height: 720)
-    private let outputSize = CGSize(width: 1920, height: 1080)
+    var outputSize = CGSize(width: 1920, height: 1080)
     private let ink = UIColor.white
     private var visibleRect = CGRect(x: 0, y: 0, width: 1280, height: 720)
     // The banner artwork already contains a high resolution logo. Use a tight
@@ -26,7 +26,8 @@ final class ScoreboardRenderer {
 
     func image(for game: Game, at serverNow: Double, viewport: CGSize = CGSize(width: 1280, height: 720)) -> CGImage? {
         // Keep the last landscape layout when Facebook Producer rotates the UI.
-        if viewport.width >= viewport.height && viewport.height > 0 { visibleRect = BroadcastLayout.visibleVideoRect(viewport: viewport) }
+        // Broadcast coordinates must not depend on the phone's aspect ratio.
+        visibleRect = CGRect(origin: .zero, size: size)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.opaque = false
@@ -69,7 +70,7 @@ final class ScoreboardRenderer {
     }()
     private func drawChannel(in cg: CGContext) {
         let width = visibleRect.width * 0.053
-        let rect = CGRect(x: visibleRect.minX + visibleRect.width * 0.851, y: visibleRect.minY + visibleRect.height * 0.065, width: width, height: width)
+        let rect = CGRect(x: visibleRect.maxX - visibleRect.width * 0.03 - width, y: visibleRect.minY + visibleRect.height * 0.03, width: width, height: width)
         cg.saveGState(); UIBezierPath(roundedRect: rect, cornerRadius: width * 0.18).addClip()
         cg.setFillColor(UIColor.white.withAlphaComponent(0.052).cgColor); cg.fill(rect)
         glassLogo?.draw(in: rect, blendMode: .screen, alpha: 0.281)
@@ -145,10 +146,10 @@ final class ScoreboardRenderer {
         let x: CGFloat
         switch game.scorePosition {
         case "center": x = visibleRect.midX - 160 * scale
-        case "right": x = visibleRect.maxX - visibleRect.width * 0.115 - 320 * scale
-        default: x = visibleRect.minX + visibleRect.width * 0.115
+        case "right": x = visibleRect.maxX - visibleRect.width * 0.03 - 320 * scale
+        default: x = visibleRect.minX + visibleRect.width * 0.03
         }
-        cg.translateBy(x: x, y: visibleRect.maxY - visibleRect.height * 0.043 - 118 * scale)
+        cg.translateBy(x: x, y: visibleRect.maxY - visibleRect.height * 0.03 - 118 * scale)
         cg.scaleBy(x: scale, y: scale)
         let left = game.homeOnLeft ? game.home : game.away
         let right = game.homeOnLeft ? game.away : game.home

@@ -20,6 +20,8 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private ValueCallback<android.net.Uri[]> logoUpload;
  private WebView web;private OpenGlView preview;private RtmpCamera2 camera;private ImageObjectFilterRender filter;private Bitmap logo,scoreWatermark;private Soundboard soundboard;
  private int videoHeight=1080;
+ private int currentBitrate=1800000,stableReports=0;private boolean wantsLive=false;private int retryAttempts=0;
+ private String lastOverlayKey="";
  private BleLink link;private GameStore game;private String role="",pin="",serverUrl="",streamKey="";
  private boolean authenticated=false,ready=false,live=false;private int failedPins=0;private long lockUntil=0;
  private final Handler main=new Handler(Looper.getMainLooper());private final HashMap<String,Runnable> pending=new HashMap<>();
@@ -27,7 +29,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   game=new GameStore();String saved=getPreferences(0).getString("game",null);if(getPreferences(0).getBoolean("matchInProgress",false)&&saved!=null)try{game.state=new JSONObject(saved);game.state.put("clock",game.remaining()).put("running",false).put("live",false).put("overlay","").put("overlayUntil",0);}catch(JSONException ignored){}
   serverUrl=getPreferences(0).getString("server","");
   videoHeight=getPreferences(0).getInt("videoHeight",1080);if(videoHeight!=480&&videoHeight!=720&&videoHeight!=1080)videoHeight=1080;
-  FrameLayout frame=new FrameLayout(this);preview=new OpenGlView(this);preview.setAspectRatioMode(com.pedro.encoder.utils.gl.AspectRatioMode.Fill);frame.addView(preview,new FrameLayout.LayoutParams(-1,-1));
+  FrameLayout frame=new FrameLayout(this);preview=new OpenGlView(this);preview.setAspectRatioMode(com.pedro.encoder.utils.gl.AspectRatioMode.Adjust);frame.addView(preview,new FrameLayout.LayoutParams(-1,-1));
   web=new WebView(this);web.setBackgroundColor(Color.TRANSPARENT);web.getSettings().setJavaScriptEnabled(true);web.getSettings().setAllowFileAccess(true);web.getSettings().setAllowFileAccessFromFileURLs(false);web.getSettings().setAllowUniversalAccessFromFileURLs(false);
   web.setWebChromeClient(new WebChromeClient(){
    @Override public boolean onShowFileChooser(WebView view,ValueCallback<android.net.Uri[]> callback,FileChooserParams params){
@@ -107,7 +109,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   if(!missing.isEmpty()){requestPermissions(missing.toArray(new String[0]),8);return false;}return true;
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);boolean all=true;for(int n:g)if(n!=PackageManager.PERMISSION_GRANTED)all=false;if(all)activateRole();else status("Consenti i permessi per usare Bluetooth e Camera");}
- private void setRole(String selected){if(live){status("Ferma prima la diretta per cambiare ruolo");return;}if(!Arrays.asList("camera","regia","scores","").contains(selected))return;
+ private void setRole(String selected){if(live||wantsLive){status("Ferma prima la diretta per cambiare ruolo");return;}if(!Arrays.asList("camera","regia","scores","").contains(selected))return;
   stopCamera();link.close();authenticated=false;for(Runnable timeout:pending.values())main.removeCallbacks(timeout);pending.clear();role=selected;pin=String.format(Locale.US,"%06d",new java.security.SecureRandom().nextInt(1000000));
   if(role.equals("camera")){try{game.state.put("overlay","").put("overlayUntil",0);getPreferences(0).edit().putString("game",game.state.toString()).apply();}catch(JSONException ignored){}}
   try{emit(new JSONObject().put("type","role").put("role",role).put("pin",pin));}catch(JSONException ignored){}
@@ -116,12 +118,16 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void activateRole(){if(role.equals("camera")){link.host();try{emit(game.envelope(ready,live));emit(new JSONObject().put("type","quality").put("height",videoHeight));}catch(JSONException ignored){}}else link.scan();}
  private void setQuality(int height){
   if(height!=480&&height!=720&&height!=1080)return;
-  if(live||(camera!=null&&camera.isStreaming())){status("Ferma l’invio prima di cambiare risoluzione");return;}
+  if(live||wantsLive||(camera!=null&&camera.isStreaming())){status("Ferma l’invio prima di cambiare risoluzione");return;}
   boolean restart=ready;if(restart)stopCamera();videoHeight=height;getPreferences(0).edit().putInt("videoHeight",height).apply();
   if(restart)startCamera();try{emit(new JSONObject().put("type","quality").put("height",videoHeight));}catch(JSONException ignored){}
  }
  private void focusCamera(double x,double y){
   if(!ready||camera==null)return;
+  double scale=Math.min(preview.getWidth()/1280.0,preview.getHeight()/720.0);if(scale<=0)return;
+  x=(x*preview.getWidth()-(preview.getWidth()-1280*scale)/2)/(1280*scale);
+  y=(y*preview.getHeight()-(preview.getHeight()-720*scale)/2)/(720*scale);
+  if(x<0||x>1||y<0||y>1)return;
   long now=android.os.SystemClock.uptimeMillis();
   MotionEvent event=MotionEvent.obtain(now,now,MotionEvent.ACTION_UP,(float)(x*preview.getWidth()),(float)(y*preview.getHeight()),0);
   try{if(!camera.tapToFocus(preview,event))status("Messa a fuoco non disponibile");}catch(Exception e){status("Messa a fuoco non disponibile");}finally{event.recycle();}
@@ -134,28 +140,30 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void startCamera(){if(ready)return;if(!permissions(true))return;
   int width=videoHeight==480?854:videoHeight==720?1280:1920;
   int bitRate=videoHeight==480?900000:videoHeight==720?1800000:3000000;
-  try{camera=new RtmpCamera2(preview,this);if(!camera.prepareVideo(width,videoHeight,30,bitRate,0)||!camera.prepareAudio(64*1024,32000,false,false,false)){status("Camera o encoder "+videoHeight+"p non disponibile");camera=null;return;}
+  try{camera=new RtmpCamera2(preview,this);if(!camera.prepareVideo(width,videoHeight,30,bitRate,0)||!camera.prepareAudio(96000,48000,false,false,false)){status("Camera o encoder "+videoHeight+"p non disponibile");camera=null;return;}
+   currentBitrate=bitRate;stableReports=0;lastOverlayKey="";camera.getStreamClient().setLogs(false);camera.getStreamClient().setReTries(5);camera.getStreamClient().setCheckServerAlive(true);camera.getStreamClient().resizeCache(120);
    soundboard=new Soundboard(getAssets());camera.setCustomAudioEffect(soundboard);
-   filter=new ImageObjectFilterRender();filter.setImage(Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888));filter.setScale(100,100);filter.setPosition(0,0);
+   filter=new ImageObjectFilterRender();filter.setImage(Bitmap.createBitmap(width,videoHeight,Bitmap.Config.ARGB_8888));filter.setScale(100,100);filter.setPosition(0,0);
    camera.startPreview(CameraHelper.Facing.BACK,width,videoHeight,0);camera.getGlInterface().setFilter(filter);ready=true;drawOverlay();status("Camera "+videoHeight+"p pronta · tocca per il fuoco, pizzica per lo zoom");
   }catch(Exception e){stopCamera();status("Camera: "+e.getMessage());}}
  private void stopCamera(){endLive();if(soundboard!=null)soundboard.stop();if(camera!=null){camera.stopPreview();camera=null;}ready=false;filter=null;soundboard=null;}
  private void beginLive(){if(!role.equals("camera")||!ready||camera==null){status("Attiva prima la Camera");return;}if(live||camera.isStreaming())return;
   if(!serverUrl.startsWith("rtmps://")||streamKey.trim().isEmpty()){status("Imposta indirizzo RTMPS e chiave Facebook sulla Camera");return;}
-  camera.startStream(serverUrl.replaceAll("/+$","")+"/"+streamKey.trim());status("Collegamento a Facebook…");}
- private void endLive(){boolean finished=live;if(soundboard!=null)soundboard.stop();if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;if(finished){game=new GameStore();getPreferences(0).edit().putBoolean("matchInProgress",false).remove("game").apply();try{emit(game.envelope(ready,false));}catch(JSONException ignored){}}}
- private void abortLive(){if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;}
+  wantsLive=true;retryAttempts=0;camera.getStreamClient().setReTries(5);camera.startStream(serverUrl.replaceAll("/+$","")+"/"+streamKey.trim());status("Collegamento a Facebook…");}
+ private void endLive(){wantsLive=false;boolean finished=live;if(soundboard!=null)soundboard.stop();if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;if(finished){game=new GameStore();getPreferences(0).edit().putBoolean("matchInProgress",false).remove("game").apply();try{emit(game.envelope(ready,false));}catch(JSONException ignored){}}}
+ private void abortLive(){wantsLive=false;if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;}
  private void drawOverlay()throws JSONException{
-  Bitmap b=Bitmap.createBitmap(1920,1080,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(1.5f,1.5f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
+  String renderKey=game.state.toString()+"|"+game.remaining()+"|"+(game.state.optString("overlay").equals("glitter")?System.currentTimeMillis()/500:0)+"|"+(game.state.optDouble("overlayUntil")>0&&System.currentTimeMillis()>game.state.optDouble("overlayUntil"));if(renderKey.equals(lastOverlayKey))return;
+  int width=videoHeight==480?854:videoHeight==720?1280:1920;Bitmap b=Bitmap.createBitmap(width,videoHeight,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(width/1280f,videoHeight/720f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
   if(s.optBoolean("showScore"))drawBroadcastScore(c,p,s,h,a);
   String overlay=s.optString("overlay");if(s.optDouble("overlayUntil")>0&&System.currentTimeMillis()>s.optDouble("overlayUntil"))overlay="";
   if(broadcastRenderer==null)broadcastRenderer=new BroadcastRenderer(getAssets());
   broadcastRenderer.setViewport(preview.getWidth(),preview.getHeight());broadcastRenderer.drawCard(c,p,s,overlay,System.currentTimeMillis());
-  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();RectF visible=BroadcastRenderer.visibleVideoRect(preview.getWidth(),preview.getHeight());float channelWidth=visible.width()*.053f,channelX=visible.left+visible.width()*.851f,channelY=visible.top+visible.height()*.065f;RectF channel=new RectF(channelX,channelY,channelX+channelWidth,channelY+channelWidth);Path logoClip=new Path();logoClip.addRoundRect(channel,channelWidth*.18f,channelWidth*.18f,Path.Direction.CW);c.clipPath(logoClip);
+  p.setColor(Color.WHITE);p.setAlpha(255);p.setFilterBitmap(true);c.save();RectF visible=new RectF(0,0,1280,720);float channelWidth=visible.width()*.053f,channelX=visible.left+visible.width()*.917f,channelY=visible.top+visible.height()*.03f;RectF channel=new RectF(channelX,channelY,channelX+channelWidth,channelY+channelWidth);Path logoClip=new Path();logoClip.addRoundRect(channel,channelWidth*.18f,channelWidth*.18f,Path.Direction.CW);c.clipPath(logoClip);
   p.setColor(Color.argb(13,255,255,255));c.drawRect(channel,p);
   ColorMatrix gray=new ColorMatrix();gray.setSaturation(0);ColorMatrix light=new ColorMatrix(new float[]{.82f,0,0,0,63.75f,0,.82f,0,0,63.75f,0,0,.82f,0,63.75f,0,0,0,1,0});gray.postConcat(light);p.setColorFilter(new ColorMatrixColorFilter(gray));p.setAlpha(72);p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SCREEN));c.drawBitmap(logo,new Rect(106,80,918,892),channel,p);p.setColorFilter(null);p.setXfermode(null);p.setAlpha(255);c.restore();p.setStyle(Paint.Style.STROKE);p.setColor(Color.argb(38,255,255,255));p.setStrokeWidth(.7f);c.drawRoundRect(channel,channelWidth*.18f,channelWidth*.18f,p);p.setStyle(Paint.Style.FILL);
-  if(filter!=null)filter.setImage(b);
+  if(filter!=null){filter.setImage(b);lastOverlayKey=renderKey;}
  }
  private BroadcastRenderer broadcastRenderer;
  private Typeface broadcastFont;
@@ -217,10 +225,19 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  }
  @Override public void onConnectionStarted(String url){main.post(()->status("Connessione video in corso…"));}
  @Override public void onConnectionSuccess(){main.post(()->{live=true;getPreferences(0).edit().putBoolean("matchInProgress",true).putString("game",game.state.toString()).apply();status("Invio video attivo · controlla Facebook Live Producer");});}
- @Override public void onConnectionFailed(String reason){main.post(()->{abortLive();status("Invio video non riuscito: "+reason);});}
+ @Override public void onConnectionFailed(String reason){main.post(()->{live=false;if(wantsLive&&camera!=null&&retryAttempts<5&&camera.getStreamClient().reTry(2000L<<retryAttempts,reason)){retryAttempts++;status("Riconnessione "+retryAttempts+"/5 · punteggi conservati");}else{abortLive();status("Invio interrotto: controlla rete e Facebook. Punteggi conservati.");}});}
  @Override public void onDisconnect(){main.post(()->{live=false;status("Invio video fermato");});}
  @Override public void onAuthError(){main.post(()->{abortLive();status("Chiave Facebook non accettata");});}
  @Override public void onAuthSuccess(){}
+ @Override public void onNewBitrate(long bitrate){main.post(()->{
+  if(!wantsLive||camera==null||!live)return;
+  int ceiling=videoHeight==480?900000:videoHeight==720?1800000:3000000;
+  int next=currentBitrate;
+  if(camera.getStreamClient().hasCongestion()){stableReports=0;next=Math.max(400000,Math.min(currentBitrate*3/4,(int)Math.max(400000,bitrate*.65-96000)));}
+  else if(++stableReports>=20){stableReports=0;next=Math.min(ceiling,currentBitrate+75000);}
+  if(next!=currentBitrate){currentBitrate=next;camera.setVideoBitrateOnFly(next);}
+  android.util.Log.i("BATStream","sentKbps="+bitrate/1000+" targetKbps="+currentBitrate/1000+" queued="+camera.getStreamClient().getItemsInCache()+" videoDropped="+camera.getStreamClient().getDroppedVideoFrames()+" audioDropped="+camera.getStreamClient().getDroppedAudioFrames());
+ });}
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==2014&&logoUpload!=null){logoUpload.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data));logoUpload=null;}}
  @Override public void onBackPressed(){if(live){new AlertDialog.Builder(this).setMessage("Ferma l’invio video prima di cambiare ruolo.").setPositiveButton("OK",null).show();}else setRole("");}
  @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);stopCamera();link.close();web.destroy();super.onDestroy();}

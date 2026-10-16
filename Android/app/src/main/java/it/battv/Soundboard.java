@@ -8,7 +8,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Mix short 32 kHz mono PCM cues into the microphone before AAC encoding. */
+/** Resample bundled 32 kHz cues once, then mix at the 48 kHz microphone rate. */
 final class Soundboard extends CustomAudioEffect {
  private final Map<String,byte[]> cues=new HashMap<>();
  private byte[] current;
@@ -24,9 +24,23 @@ final class Soundboard extends CustomAudioEffect {
     if(wav.length<44)throw new IOException("Audio non valido: "+name);
     byte[] pcm=new byte[wav.length-44];
     System.arraycopy(wav,44,pcm,0,pcm.length);
-    cues.put(name,pcm);
+    cues.put(name,resample48k(pcm));
    }
   }
+ }
+
+ static byte[] resample48k(byte[] pcm) {
+  int frames=pcm.length/2;
+  if(frames==0)return new byte[0];
+  int count=frames*3/2;byte[] result=new byte[count*2];
+  for(int i=0;i<count;i++){
+   double source=i*2.0/3.0;int a=(int)source,b=Math.min(a+1,frames-1);
+   int left=(short)((pcm[a*2]&255)|(pcm[a*2+1]<<8));
+   int right=(short)((pcm[b*2]&255)|(pcm[b*2+1]<<8));
+   int sample=(int)Math.round(left+(right-left)*(source-a));
+   result[i*2]=(byte)sample;result[i*2+1]=(byte)(sample>>8);
+  }
+  return result;
  }
 
  synchronized boolean play(String name) {
@@ -46,7 +60,7 @@ final class Soundboard extends CustomAudioEffect {
   for(int i=0;i<count;i+=2){
    int mic=(short)((output[i]&255)|(output[i+1]<<8));
    int effect=(short)((cue[offset+i]&255)|(cue[offset+i+1]<<8));
-   int mixed=Math.max(-32768,Math.min(32767,Math.round(mic*.78f+effect*.62f)));
+   int mixed=Math.max(-32768,Math.min(32767,Math.round(mic*.75f+effect*.25f)));
    output[i]=(byte)mixed;output[i+1]=(byte)(mixed>>8);
   }
   offset+=count;

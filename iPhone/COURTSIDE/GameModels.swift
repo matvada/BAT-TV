@@ -1,5 +1,24 @@
 import Foundation
 
+/// Pure adaptation policy, exercised by the native test harness with synthetic uplinks.
+enum BATStreamPolicy {
+    static func bitrate(current: Int, ceiling: Int, queue: Double, bytesPerSecond: Int, stable: inout Int) -> Int {
+        if queue > 0.75 {
+            stable = 0
+            let sustainable = max(400_000, Int(Double(bytesPerSecond) * 8 * 0.65) - 96_000)
+            return max(400_000, min(current * 3 / 4, sustainable))
+        }
+        if queue < 0.25 {
+            stable += 1
+            if stable >= 20 {
+                stable = 0
+                return min(ceiling, current + 75_000)
+            }
+        } else { stable = 0 }
+        return current
+    }
+}
+
 struct Team: Codable {
     var name: String
     var color: String
