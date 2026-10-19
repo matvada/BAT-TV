@@ -100,6 +100,51 @@ body.roleChooser header b{font-size:30px}
 body.remoteMode #remoteControl:not(.hidden),body.remoteMode #connection:not(.hidden){inset:calc(74px + var(--safe-top)) var(--safe-right) var(--safe-bottom) var(--safe-left);width:auto;height:auto}
 .graphicsBar:not(.soundBar){grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,1fr);height:66px}
 @media(max-height:450px){.graphicsBar:not(.soundBar){height:54px}.soundBar{height:28px}.scorePage .score{font-size:34px}.scorePage .team button{min-height:26px}.scorePage .colorControl input[type=color]{height:26px;min-height:26px}}
+/* Operator controls only: never changes the native video/broadcast layout. */
+body.regiaMode{--control-size:44px;--control-font:16px}
+body.regiaMode header button{min-height:var(--control-size);font-size:var(--control-font)}
+body.regiaMode #status{font-size:16px}
+body.regiaMode #roleTitle{font-size:18px}
+body.regiaMode #remoteControl:not(.hidden){display:flex;flex-direction:column;gap:10px}
+body.regiaMode #remoteTabs{height:auto;min-height:var(--control-size);flex:none;flex-wrap:wrap;margin:0;gap:8px}
+body.regiaMode #remoteTabs button,body.regiaMode #remoteTabs .regiaOnly,
+body.regiaMode .remotePage button,body.regiaMode #connection button,
+body.regiaMode #connection input{min-height:var(--control-size);padding:10px 12px;font-size:var(--control-font);white-space:normal;line-height:1.2;touch-action:manipulation}
+body.regiaMode .remotePage:not(.hidden){height:auto;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding-bottom:4px}
+body.regiaMode .scorePage:not(.hidden){gap:10px}
+body.regiaMode .graphicsBar:not(.soundBar){height:auto;grid-auto-rows:minmax(var(--control-size),auto);grid-template-rows:none;gap:8px}
+body.regiaMode .soundBar{height:auto;grid-auto-rows:minmax(var(--control-size),auto);gap:8px}
+body.regiaMode .scorePage .grid{flex:1 0 auto;height:auto;min-height:min-content;gap:12px}
+body.regiaMode .remotePage .panel{padding:12px;overflow:visible}
+body.regiaMode .remotePage .team h2{font-size:28px}
+body.regiaMode .remotePage .score{font-size:64px;line-height:1.1}
+body.regiaMode .remotePage .row{gap:8px;margin:10px 0}
+body.regiaMode .remotePage .small,body.regiaMode .colorControl,
+body.regiaMode #liveState,body.regiaMode #connection .small{font-size:16px;line-height:1.35}
+body.regiaMode .colorControl input[type=color]{width:48px;height:var(--control-size);min-height:var(--control-size)}
+body.regiaMode .remotePage .clock{font-size:52px}
+body.regiaMode #quarter{font-size:26px}
+body.regiaMode .timeSwitch{width:min(340px,100%)}
+body.regiaMode .broadcastSettings{height:auto}
+body.regiaMode .broadcastGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+body.regiaMode .broadcastGrid label{font-size:18px;gap:8px}
+body.regiaMode .broadcastGrid input,body.regiaMode .broadcastGrid select{font-size:var(--control-font);min-height:var(--control-size);padding:10px}
+body.regiaMode .broadcastSettings h2{font-size:30px}
+body.regiaMode #connection .panel{overflow:auto}
+@media(min-width:700px) and (min-height:550px){
+ body.regiaMode{--control-size:56px;--control-font:20px}
+ body.regiaMode #remoteControl:not(.hidden){padding:12px}
+ body.regiaMode .remotePage .team h2{font-size:32px}
+ body.regiaMode .remotePage .score{font-size:76px}
+ body.regiaMode .remotePage .clock{font-size:64px}
+ body.regiaMode .remotePage .small,body.regiaMode .colorControl,body.regiaMode #liveState{font-size:18px}
+}
+@media(max-width:699px){
+ body.regiaMode .graphicsBar:not(.soundBar){grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.regiaMode .scorePage .grid{grid-template-columns:1fr}
+ body.regiaMode .soundBar{grid-template-columns:1fr}
+ body.regiaMode #remoteTabs #liveState{white-space:normal;margin-left:0}
+}
 </style>
 <body class="roleChooser"><header><img src="logo.png"><b>BAT <span>tv</span></b><div id="roleTitle"></div><div id="status">Scegli il tuo ruolo</div><button onclick="dispatch({type:'role',role:''})">Ruoli</button></header>
 <main>
@@ -145,7 +190,7 @@ videoArea.addEventListener('touchcancel',()=>{touchStart=null;pinching=false;pin
 window.receive=o=>{
  if(o.type==='quality'){el('videoQuality').value=String(o.height);return;}
 
- if(o.type==='role'){role=o.role;toggleCameraControls(role==='camera');cameraTab('link');remoteTab('score');document.body.classList.toggle('cameraMode',role==='camera');document.body.classList.toggle('remoteMode',role==='regia'||role==='scores');document.body.classList.toggle('roleChooser',!role);document.querySelectorAll('.regiaOnly').forEach(x=>x.classList.toggle('hidden',role!=='regia'));state=null;connected=false;el('chooser').classList.toggle('hidden',!!role);el('cameraPane').classList.toggle('hidden',role!=='camera');el('connection').classList.toggle('hidden',!role||role==='camera');el('remoteControl').classList.add('hidden');el('graphics').classList.toggle('hidden',role==='scores');el('pinLabel').textContent=o.pin||'';el('roleTitle').textContent=({camera:'CAMERA',regia:'REGIA',scores:'PUNTEGGI'})[role]||'';document.body.classList.remove('cameraActive');devices=[];devicePage=0;showDevices();}
+ if(o.type==='role'){role=o.role;document.body.classList.toggle('regiaMode',role==='regia');toggleCameraControls(role==='camera');cameraTab('link');remoteTab('score');document.body.classList.toggle('cameraMode',role==='camera');document.body.classList.toggle('remoteMode',role==='regia'||role==='scores');document.body.classList.toggle('roleChooser',!role);document.querySelectorAll('.regiaOnly').forEach(x=>x.classList.toggle('hidden',role!=='regia'));state=null;connected=false;el('chooser').classList.toggle('hidden',!!role);el('cameraPane').classList.toggle('hidden',role!=='camera');el('connection').classList.toggle('hidden',!role||role==='camera');el('remoteControl').classList.add('hidden');el('graphics').classList.toggle('hidden',role==='scores');el('pinLabel').textContent=o.pin||'';el('roleTitle').textContent=({camera:'CAMERA',regia:'REGIA',scores:'PUNTEGGI'})[role]||'';document.body.classList.remove('cameraActive');devices=[];devicePage=0;showDevices();}
  else if(o.type==='unpaired'){connected=false;el('remoteControl').classList.add('hidden');el('connection').classList.remove('hidden');}
  else if(o.type==='status'||o.type==='error'){el('status').textContent=o.message;}
  else if(o.type==='destination'){el('url').value=o.url||'';el('key').value=o.key||'';}

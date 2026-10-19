@@ -23,6 +23,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Verifica effetti sonori originali
+        run: python3 scripts/generate_sound_effects.py --check
       - name: Imposta numero build
         run: |
           plutil -replace CFBundleVersion -string "$GITHUB_RUN_NUMBER" 'iPhone/COURTSIDE/Info.plist'

@@ -12,11 +12,36 @@ permissions:
   contents: read
 
 jobs:
+  tablet-controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepara browser per i test della regia
+        run: |
+          npm install --prefix "$RUNNER_TEMP/bat-ui" playwright@1.62.1
+          node "$RUNNER_TEMP/bat-ui/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Verifica controlli tablet e menu Camera
+        run: |
+          export NODE_PATH="$RUNNER_TEMP/bat-ui/node_modules"
+          export REGIA_SCREENSHOT="$RUNNER_TEMP/regia-tablet.png"
+          node tests/check-regia-tablet.cjs
+          node tests/check-preview-menu.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: BAT-regia-tablet-check
+          path: ${{ runner.temp }}/regia-tablet.png
   iphone:
     runs-on: macos-26
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Verifica provenienza e riproducibilita effetti sonori
+        run: python3 scripts/generate_sound_effects.py --check
       - name: Compila iPhone senza firma
         run: |
           xcodebuild -project 'iPhone/BAT-tv.xcodeproj' \
