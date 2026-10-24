@@ -32,6 +32,13 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
                 NSLog("BAT render check: %@ saved", name)
             }
             try save("broadcast-home-left")
+            assert(game.showTeamLogos)
+            let savedLogo = game.home.logo
+            assert(game.apply("showTeamLogos", team: nil, value: 0, text: nil, now: 1000))
+            let restored = try JSONDecoder().decode(Game.self, from: JSONEncoder().encode(game))
+            assert(!restored.showTeamLogos && restored.home.logo == savedLogo)
+            try save("broadcast-initials")
+            assert(game.apply("showTeamLogos", team: nil, value: 1, text: nil, now: 1000))
             for dimensions in [CGSize(width: 854, height: 480), CGSize(width: 1280, height: 720), CGSize(width: 1920, height: 1080)] {
                 renderer.outputSize = dimensions
                 let a = renderer.image(for: game, at: 1000, viewport: CGSize(width: 852, height: 393))!
@@ -48,9 +55,11 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
             // Upgrade compatibility: v38 snapshots do not include team logos or layout fields.
             var legacy = try JSONSerialization.jsonObject(with: JSONEncoder().encode(game)) as! [String: Any]
             legacy.removeValue(forKey: "scoreStyle"); legacy.removeValue(forKey: "homeOnLeft")
+            legacy.removeValue(forKey: "showTeamLogos")
             for key in ["home", "away"] { var team = legacy[key] as! [String: Any]; team.removeValue(forKey: "logo"); legacy[key] = team }
             let migrated = try JSONDecoder().decode(Game.self, from: JSONSerialization.data(withJSONObject: legacy))
             assert(migrated.homeOnLeft && migrated.home.logo == "preset:bat" && migrated.home.score == 999)
+            assert(migrated.showTeamLogos)
             guard UIFont(name: "Galiga-Regular", size: 41) != nil else { throw NSError(domain: "Galiga font unavailable", code: 2) }
             var manual = game
             assert(manual.apply("opponentPreset", team: nil, value: nil, text: "vac", now: 1000) && manual.away.name == "VBA")

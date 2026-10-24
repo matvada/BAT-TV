@@ -124,12 +124,12 @@ final class ScoreboardRenderer {
         base.getRed(&r, green: &g, blue: &b, alpha: &a); other.getRed(&rr, green: &gg, blue: &bb, alpha: &aa)
         return UIColor(red: r * fraction + rr * (1-fraction), green: g * fraction + gg * (1-fraction), blue: b * fraction + bb * (1-fraction), alpha: 1)
     }
-    private func broadcastText(_ text: String, in rect: CGRect, size: CGFloat, edge: NSTextAlignment, padding: CGFloat = 0, cg: CGContext) {
+    private func broadcastText(_ text: String, in rect: CGRect, size: CGFloat, edge: NSTextAlignment, padding: CGFloat = 0, textColor: UIColor = .white, cg: CGContext) {
         guard !text.isEmpty else { return }
         func line(_ size: CGFloat) -> CTLine {
             let base = UIFont(name: broadcastFont, size: size) ?? UIFont.systemFont(ofSize: size)
             let font = UIFont(descriptor: base.fontDescriptor.withMatrix(CGAffineTransform(a: 1, b: 0, c: 0.176327, d: 1, tx: 0, ty: 0)), size: size)
-            return CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: UIColor.white]))
+            return CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: font, .foregroundColor: textColor]))
         }
         var textLine = line(size)
         var bounds = CTLineGetBoundsWithOptions(textLine, .useGlyphPathBounds)
@@ -153,16 +153,16 @@ final class ScoreboardRenderer {
         cg.scaleBy(x: scale, y: scale)
         let left = game.homeOnLeft ? game.home : game.away
         let right = game.homeOnLeft ? game.away : game.home
-        broadcastTeam(left, home: game.homeOnLeft, right: false, in: cg)
+        broadcastTeam(left, home: game.homeOnLeft, right: false, showLogos: game.showTeamLogos, in: cg)
         cg.saveGState(); cg.translateBy(x: 155, y: 0)
-        broadcastTeam(right, home: !game.homeOnLeft, right: true, in: cg); cg.restoreGState()
+        broadcastTeam(right, home: !game.homeOnLeft, right: true, showLogos: game.showTeamLogos, in: cg); cg.restoreGState()
         panel(CGRect(x: -0.96, y: 87, width: 303, height: 30), colors: [UIColor(white: 0.3, alpha: 1), UIColor(red: 21/255, green: 24/255, blue: 25/255, alpha: 1), UIColor(red: 9/255, green: 11/255, blue: 13/255, alpha: 1)], locations: [0, 0.18, 1], in: cg)
         let quarter = game.quarter <= 4 ? ["PRIMO QUARTO", "SECONDO QUARTO", "TERZO QUARTO", "QUARTO QUARTO"][max(0, game.quarter - 1)] : "SUPPLEMENTARE \(game.quarter - 4)"
         // Counter-skewed ticker text: quarter stays left, clock stays right.
         broadcastText(quarter, in: CGRect(x: 14.489, y: 87, width: 180, height: 30), size: 15, edge: .left, cg: cg)
         if game.clockEnabled { broadcastText(game.clockText(at: now), in: CGRect(x: 221.895, y: 87, width: 70, height: 30), size: 19.2, edge: .right, cg: cg) }
     }
-    private func broadcastTeam(_ team: Team, home: Bool, right: Bool, in cg: CGContext) {
+    private func broadcastTeam(_ team: Team, home: Bool, right: Bool, showLogos: Bool, in cg: CGContext) {
         let base = color(team.color)
         panel(CGRect(x: 5, y: 12, width: 150, height: 52), colors: [mixed(base, with: .white, fraction: 0.76), base, mixed(base, with: UIColor(red: 5/255, green: 4/255, blue: 11/255, alpha: 1), fraction: 0.45)], locations: [0, 0.08, 1], in: cg, artwork: home)
         panel(CGRect(x: 1.44, y: 66, width: 150, height: 19), colors: [mixed(base, with: .white, fraction: 0.6), base, mixed(base, with: .black, fraction: 0.55)], locations: [0, 0.13, 1], in: cg)
@@ -176,10 +176,13 @@ final class ScoreboardRenderer {
                 cg.fill(CGRect(x: 0, y: 0, width: 2.88, height: 8.64)); cg.restoreGState()
             }
         }
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        base.getRed(&r, green: &g, blue: &b, alpha: &a)
+        let light = showLogos || (0.299*r + 0.587*g + 0.114*b > 0.6)
         let rect = CGRect(x: right ? 93.24 : 17.808, y: 0, width: 60.8, height: 60.8)
-        cg.saveGState(); UIBezierPath(ovalIn: rect).addClip(); cg.setFillColor(UIColor.white.cgColor); cg.fill(rect)
-        if let image = broadcastCrest(team.logo.isEmpty && home ? "preset:bat" : team.logo) { image.draw(in: rect) }
-        else { broadcastText(String(team.name.prefix(3)).uppercased(), in: rect.insetBy(dx: 5, dy: 5), size: 16, edge: .center, cg: cg) }
+        cg.saveGState(); UIBezierPath(ovalIn: rect).addClip(); cg.setFillColor((showLogos ? UIColor.white : base).cgColor); cg.fill(rect)
+        if showLogos, let image = broadcastCrest(team.logo.isEmpty && home ? "preset:bat" : team.logo) { image.draw(in: rect) }
+        else { broadcastText(String(team.name.prefix(3)).uppercased(), in: rect.insetBy(dx: 5, dy: 5), size: 26, edge: .center, textColor: light ? .black : .white, cg: cg) }
         cg.restoreGState(); cg.setStrokeColor(UIColor.white.withAlphaComponent(0.5).cgColor); cg.setLineWidth(1); cg.strokeEllipse(in: rect.insetBy(dx: 0.5, dy: 0.5))
     }
 

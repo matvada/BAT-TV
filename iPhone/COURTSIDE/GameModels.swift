@@ -55,12 +55,13 @@ struct Game: Codable {
     var scoreStyle: String
     var homeOnLeft: Bool
     var scorePosition: String
+    var showTeamLogos: Bool = true
     var live: Bool
     var liveCommand: Double
 
     private enum CodingKeys: String, CodingKey {
         case home, away, quarter, clock, clockEnabled, running, startedAt
-        case overlay, overlayUntil, caption, showScore, scoreStyle, homeOnLeft, scorePosition, live, liveCommand
+        case overlay, overlayUntil, caption, showScore, scoreStyle, homeOnLeft, scorePosition, showTeamLogos, live, liveCommand
     }
 
     init(from decoder: Decoder) throws {
@@ -78,6 +79,7 @@ struct Game: Codable {
         showScore = try value.decode(Bool.self, forKey: .showScore)
         scoreStyle = try value.decodeIfPresent(String.self, forKey: .scoreStyle) ?? "broadcast"
         homeOnLeft = try value.decodeIfPresent(Bool.self, forKey: .homeOnLeft) ?? true
+        showTeamLogos = try value.decodeIfPresent(Bool.self, forKey: .showTeamLogos) ?? true
         scorePosition = try value.decodeIfPresent(String.self, forKey: .scorePosition) ?? "left"
         live = try value.decode(Bool.self, forKey: .live)
         liveCommand = try value.decode(Double.self, forKey: .liveCommand)
@@ -179,6 +181,9 @@ extension Game {
         case "scoreStyle":
             guard let text, ["classic", "broadcast"].contains(text) else { return false }
             scoreStyle = text
+        case "showTeamLogos":
+            guard let value, value == 0 || value == 1 else { return false }
+            showTeamLogos = value == 1
         case "scorePosition":
             guard let text, ["left", "center", "right"].contains(text) else { return false }
             scorePosition = text
