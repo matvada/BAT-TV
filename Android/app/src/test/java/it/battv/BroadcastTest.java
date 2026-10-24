@@ -51,6 +51,12 @@ public class BroadcastTest {
  @Test public void nativeRenderingFitsFrame()throws Exception{
   BroadcastRenderer renderer=new BroadcastRenderer(RuntimeEnvironment.getApplication().getAssets());GameStore g=new GameStore();g.apply(command("preset","opponentPreset","hub"));g.state.getJSONObject("home").put("score",32).put("fouls",2).put("timeouts",1);g.state.getJSONObject("away").put("score",28).put("fouls",3);
   render(renderer,g,"broadcast-home-left");
+  String logo=g.state.getJSONObject("home").getString("logo");
+  assertTrue(g.apply(command("letters","showTeamLogos","").put("value",0)));
+  assertFalse(new JSONObject(g.state.toString()).getBoolean("showTeamLogos"));
+  assertEquals(logo,g.state.getJSONObject("home").getString("logo"));
+  render(renderer,g,"broadcast-initials");
+  assertTrue(g.apply(command("logos","showTeamLogos","").put("value",1)));
   g.state.put("homeOnLeft",false).put("clockEnabled",false).put("quarter",3);g.state.getJSONObject("home").put("score",128);render(renderer,g,"broadcast-home-right-clock-off");
   g.state.put("homeOnLeft",true).put("clockEnabled",true).put("quarter",12).put("clock",3600);g.state.getJSONObject("home").put("score",999);g.state.getJSONObject("away").put("score",999).put("logo","preset:cat");render(renderer,g,"broadcast-long-labels");
  }
