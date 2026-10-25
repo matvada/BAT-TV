@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import WebKit
 import Combine
+import AVFoundation
 
 enum BATBrand {
     static let purple = UIColor(red: 81/255, green: 42/255, blue: 125/255, alpha: 1)
@@ -153,13 +154,26 @@ struct BATHybridView: UIViewRepresentable {
         weak var web: WKWebView?
         private var subscriptions = Set<AnyCancellable>()
         private var role = ""
+        private var reader: BoardReader?
+        private var readerActive = false
+        private var boardOffset = 0.0, boardStateAt = 0.0, boardSentAt = 0.0
+        private var pauseObserver: NSObjectProtocol?
         init(camera: CameraEngine, openFacebookProducer: @escaping () -> Void) {
             self.camera = camera
             self.openFacebookProducer = openFacebookProducer
         }
         func attach(_ web: WKWebView) {
             self.web = web
-            camera.bridge.onEvent = { [weak self] event in self?.emit(event) }
+            camera.bridge.onEvent = { [weak self] event in
+                if event["type"] as? String == "state", let now = event["serverNow"] as? Double {
+                    self?.boardOffset = now - Date().timeIntervalSince1970 * 1000
+                    self?.boardStateAt = ProcessInfo.processInfo.systemUptime
+                }
+                self?.emit(event)
+            }
+            pauseObserver = NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+                self?.readerActive = false; self?.reader?.stop()
+            }
             camera.bridge.$status.sink { [weak self] message in self?.emit(["type": "status", "message": message]) }.store(in: &subscriptions)
             camera.$message.sink { [weak self] message in if self?.role == "camera" { self?.emit(["type": "status", "message": message]) } }.store(in: &subscriptions)
             camera.$serverURL.combineLatest(camera.$streamKey).sink { [weak self] url, key in
@@ -178,13 +192,17 @@ struct BATHybridView: UIViewRepresentable {
                 let selected = object["role"] as? String ?? ""
                 guard ["", "camera", "regia", "scores"].contains(selected) else { return }
                 Task { @MainActor in
-                    await camera.stopCamera(); camera.bridge.stop(); role = selected
+                    readerActive = false; reader?.stop(); await camera.stopCamera(); camera.bridge.stop(); role = selected
                     web?.scrollView.isScrollEnabled = selected != "camera"
                     emit(["type": "role", "role": selected, "pin": camera.bridge.pin])
                     emit(["type": "quality", "height": camera.quality])
                     if selected == "camera" { camera.bridge.start() }
                     else if !selected.isEmpty { camera.bridge.startController() }
                 }
+            case "readerStart": startReader()
+            case "readerStop": readerActive = false; reader?.stop()
+            case "readerRegions":
+                if role == "scores" { reader?.configure(object["regions"] as? [String: [Double]] ?? [:]) }
             case "scan": camera.bridge.scan()
             case "connect": camera.bridge.connect(object["address"] as? String ?? "")
             case "pair": camera.bridge.sendCommand(object)
@@ -214,6 +232,28 @@ struct BATHybridView: UIViewRepresentable {
             default: break
             }
         }
+        private func startReader() {
+            guard role == "scores" else { return }
+            if reader == nil {
+                let scanner = BoardReader()
+                scanner.onEvent = { [weak self] event in self?.emit(event) }
+                scanner.onReading = { [weak self] values, at in
+                    guard let self, self.readerActive, self.role == "scores", self.camera.bridge.linked,
+                          ProcessInfo.processInfo.systemUptime - self.boardStateAt < 4,
+                          ProcessInfo.processInfo.systemUptime - self.boardSentAt > 0.7,
+                          self.camera.bridge.clientIdle else { return }
+                    let packet: [String: Any] = ["values": values, "at": at + self.boardOffset]
+                    guard let data = try? JSONSerialization.data(withJSONObject: packet), let text = String(data: data, encoding: .utf8) else { return }
+                    self.boardSentAt = ProcessInfo.processInfo.systemUptime
+                    self.camera.bridge.sendCommand(["type": "command", "id": UUID().uuidString, "action": "boardReading", "text": text])
+                }
+                reader = scanner
+            }
+            readerActive = true
+            let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+            reader?.start(orientation: scene?.interfaceOrientation == .landscapeLeft ? .landscapeLeft : .landscapeRight)
+        }
+        deinit { if let pauseObserver { NotificationCenter.default.removeObserver(pauseObserver) }; reader?.stop() }
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             decisionHandler(navigationAction.request.url?.isFileURL == true ? .allow : .cancel)
         }

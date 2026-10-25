@@ -56,16 +56,18 @@ struct Game: Codable {
     var homeOnLeft: Bool
     var scorePosition: String
     var showTeamLogos: Bool = true
+    var board = BoardState()
     var live: Bool
     var liveCommand: Double
 
     private enum CodingKeys: String, CodingKey {
-        case home, away, quarter, clock, clockEnabled, running, startedAt
+        case board, home, away, quarter, clock, clockEnabled, running, startedAt
         case overlay, overlayUntil, caption, showScore, scoreStyle, homeOnLeft, scorePosition, showTeamLogos, live, liveCommand
     }
 
     init(from decoder: Decoder) throws {
         let value = try decoder.container(keyedBy: CodingKeys.self)
+        board = try value.decodeIfPresent(BoardState.self, forKey: .board) ?? BoardState()
         home = try value.decode(Team.self, forKey: .home)
         away = try value.decode(Team.self, forKey: .away)
         quarter = try value.decode(Int.self, forKey: .quarter)
@@ -148,6 +150,7 @@ extension Game {
     }
 
     mutating func apply(_ action: String, team: String?, value: Int?, text: String?, now: Double) -> Bool {
+        if action.hasPrefix("board") { return applyBoard(action, text: text ?? "", now: now) }
         switch action {
         case "score", "foul", "timeout":
             guard let team, ["home", "away"].contains(team), let value, (-3...3).contains(value) else { return false }
@@ -210,6 +213,7 @@ extension Game {
             if team == "home" { home.logo = text } else { away.logo = text }
         default: return false
         }
+        board.override(action, team: team ?? "")
         return true
     }
 }
@@ -222,5 +226,78 @@ enum BroadcastLayout {
         let scale = max(viewport.width / 1280, viewport.height / 720)
         let width = viewport.width / scale, height = viewport.height / scale
         return CGRect(x: (1280 - width) / 2, y: (720 - height) / 2, width: width, height: height)
+    }
+}
+
+struct BoardCandidate: Codable { var value: Int; var at: Double }
+struct BoardState: Codable {
+    static let fields = ["homeScore", "awayScore", "clock", "quarter", "homeFouls", "awayFouls", "homeTimeouts", "awayTimeouts"]
+    var automatic: [String] = []
+    var candidates: [String: BoardCandidate] = [:]
+    var lastAt: Double = 0
+    static func valid(_ key: String, _ value: Int) -> Bool {
+        let maximum = key == "clock" ? 3600 : key == "quarter" ? 12 : key.hasSuffix("Score") ? 999 : 9
+        return fields.contains(key) && value >= (key == "quarter" ? 1 : 0) && value <= maximum
+    }
+    mutating func manual(_ field: String) { automatic.removeAll { field == "all" || $0 == field } }
+    mutating func override(_ action: String, team: String) {
+        if action == "undo" { manual("all") }
+        if ["score", "foul", "timeout"].contains(action) { manual(team + (action == "score" ? "Score" : action == "foul" ? "Fouls" : "Timeouts")) }
+        if action.hasPrefix("clock") { manual("clock") }
+        if action == "quarter" { manual("quarter"); manual("homeFouls"); manual("awayFouls") }
+    }
+    mutating func expire(now: Double) {
+        automatic.removeAll { key in guard let c = candidates[key] else { return true }; return now - c.at > 3000 }
+    }
+}
+extension Game {
+    mutating func setBoard(_ key: String, _ value: Int, now: Double) {
+        switch key {
+        case "homeScore": home.score = value
+        case "awayScore": away.score = value
+        case "homeFouls": home.fouls = value
+        case "awayFouls": away.fouls = value
+        case "homeTimeouts": home.timeouts = value
+        case "awayTimeouts": away.timeouts = value
+        case "quarter": quarter = value
+        case "clock": clock = Double(value); running = false; startedAt = now
+        default: break
+        }
+    }
+    mutating func applyBoard(_ action: String, text: String, now: Double) -> Bool {
+        if action == "boardManual" {
+            guard text == "all" || BoardState.fields.contains(text) else { return false }
+            board.manual(text); return true
+        }
+        guard text.utf8.count <= 1600, let data = text.data(using: .utf8),
+              let packet = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return false }
+        if action == "boardAuto" {
+            guard let key = packet["field"] as? String, BoardState.fields.contains(key), let c = board.candidates[key],
+                  now >= c.at, now - c.at <= 3000, packet["value"] as? Int == c.value else { return false }
+            if !board.automatic.contains(key) { board.automatic.append(key) }
+            setBoard(key, c.value, now: now); return true
+        }
+        guard action == "boardReading", let at = packet["at"] as? Double, at.isFinite,
+              at > board.lastAt, at <= now + 500, now - at <= 3000,
+              let values = packet["values"] as? [String: Any] else { return false }
+        var parsed: [String: Int] = [:]
+        for (key, raw) in values {
+            guard let number = raw as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+                  number.doubleValue.isFinite, number.doubleValue >= 0, number.doubleValue <= 3600,
+                  number.doubleValue == Double(number.intValue), BoardState.valid(key, number.intValue) else { return false }
+            parsed[key] = number.intValue
+        }
+        board.lastAt = at
+        for (key, value) in parsed {
+            let prior = board.candidates[key]
+            board.candidates[key] = BoardCandidate(value: value, at: at)
+            if board.automatic.contains(key) {
+                let delta = value - (prior?.value ?? value)
+                let gap = prior == nil || at - (prior?.at ?? 0) > 3000
+                let jump = key == "clock" ? (delta > 0 || delta < -5) : key.hasSuffix("Score") ? (delta < 0 || delta > 3) : abs(delta) > 1
+                if gap || jump { board.manual(key) } else { setBoard(key, value, now: now) }
+            }
+        }
+        return true
     }
 }

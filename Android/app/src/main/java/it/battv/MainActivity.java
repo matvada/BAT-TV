@@ -22,11 +22,14 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private int videoHeight=1080;
  private int currentBitrate=1800000,stableReports=0;private boolean wantsLive=false;private int retryAttempts=0;
  private String lastOverlayKey="";
+ private String boardSource="";
+ private BoardReader reader;private long boardOffset=0,boardStateAt=0,boardSentAt=0;
  private BleLink link;private GameStore game;private String role="",pin="",serverUrl="",streamKey="";
  private boolean authenticated=false,ready=false,live=false;private int failedPins=0;private long lockUntil=0;
  private final Handler main=new Handler(Looper.getMainLooper());private final HashMap<String,Runnable> pending=new HashMap<>();
  @Override public void onCreate(Bundle b){super.onCreate(b);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
   game=new GameStore();String saved=getPreferences(0).getString("game",null);if(getPreferences(0).getBoolean("matchInProgress",false)&&saved!=null)try{game.state=new JSONObject(saved);game.state.put("clock",game.remaining()).put("running",false).put("live",false).put("overlay","").put("overlayUntil",0);}catch(JSONException ignored){}
+  try{game.state.remove("board");}catch(Exception ignored){}
   serverUrl=getPreferences(0).getString("server","");
   videoHeight=getPreferences(0).getInt("videoHeight",1080);if(videoHeight!=480&&videoHeight!=720&&videoHeight!=1080)videoHeight=1080;
   FrameLayout frame=new FrameLayout(this);preview=new OpenGlView(this);preview.setAspectRatioMode(com.pedro.encoder.utils.gl.AspectRatioMode.Adjust);frame.addView(preview,new FrameLayout.LayoutParams(-1,-1));
@@ -68,7 +71,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   main.postDelayed(()->root.removeView(splash),2000);
  }
  private final Runnable ticker=new Runnable(){public void run(){
-  try{if(role.equals("camera")){if(game.state.optBoolean("running")&&game.remaining()==0)game.state.put("clock",0).put("running",false);JSONObject s=game.envelope(ready,live);emit(s);if(authenticated&&link.idle())link.send(s);if(ready)drawOverlay();}}
+  try{if(role.equals("camera")){BoardState.expire(game.state,System.currentTimeMillis());if(game.state.optBoolean("running")&&game.remaining()==0)game.state.put("clock",0).put("running",false);JSONObject s=game.envelope(ready,live);emit(s);if(authenticated&&link.idle())link.send(s);if(ready)drawOverlay();}}
   catch(Exception e){status("Grafica: "+e.getMessage());}main.postDelayed(this,500);
  }};
  private void emit(JSONObject o){web.evaluateJavascript("window.receive("+o.toString()+")",null);}
@@ -76,31 +79,32 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  public void found(String n,String a){try{emit(new JSONObject().put("type","device").put("name",n).put("address",a));}catch(JSONException ignored){}}
  public void message(JSONObject o){try{
   String type=o.optString("type");
-  if(type.equals("unpaired")){authenticated=false;emit(o);return;}
+  if(type.equals("unpaired")){authenticated=role.equals("camera")&&link.hasAuthorized();emit(o);return;}
   if(role.equals("camera")){
    if(type.equals("unpaired")){authenticated=false;return;}
    if(type.equals("pair")){
     if(System.currentTimeMillis()<lockUntil){link.send(new JSONObject().put("type","error").put("message","Attendi 30 secondi"));return;}
     if(!o.optString("pin").equals(pin)){if(++failedPins>=5){lockUntil=System.currentTimeMillis()+30000;failedPins=0;}link.send(new JSONObject().put("type","error").put("message","Codice errato"));return;}
-    authenticated=true;failedPins=0;status("Controller collegato via Bluetooth");link.send(game.envelope(ready,live));return;
+    link.authorizeSender();authenticated=true;failedPins=0;status("Controller collegato via Bluetooth");link.send(game.envelope(ready,live));return;
    }
-   if(!authenticated){link.send(new JSONObject().put("type","error").put("message","Inserisci il codice della Camera"));return;}
+   if(!link.senderAuthorized()){link.send(new JSONObject().put("type","error").put("message","Inserisci il codice della Camera"));return;}
    if(type.equals("command"))apply(o,true);
   }else {
-   if(type.equals("state")){authenticated=true;emit(o);status("Collegato via Bluetooth");}
+   if(type.equals("state")){boardOffset=o.optLong("serverNow")-System.currentTimeMillis();boardStateAt=SystemClock.elapsedRealtime();authenticated=true;emit(o);status("Collegato via Bluetooth");}
    else if(type.equals("ack")){Runnable timeout=pending.remove(o.optString("id"));if(timeout!=null)main.removeCallbacks(timeout);}
    else emit(o);
   }
  }catch(Exception e){status("Bluetooth: "+e.getMessage());}}
  private void apply(JSONObject o,boolean remote)throws JSONException{
   String a=o.optString("action");boolean accepted;
+  if(a.equals("boardReading")&&remote){String sender=link.senderId();if(!boardSource.isEmpty()&&!boardSource.equals(sender)){if(System.currentTimeMillis()-BoardState.get(game.state).optDouble("lastAt")<=3000)return;game.state.remove("board");}boardSource=sender;}
   if(a.equals("liveStart")||a.equals("liveStop")){if(a.equals("liveStart"))beginLive();else endLive();accepted=true;}
   else if(a.equals("sound")){accepted=ready&&live&&soundboard!=null&&soundboard.play(o.optString("text"));if(!accepted)status("Avvia la diretta prima di usare i suoni");}
   else accepted=game.apply(o);
   if(!accepted){if(remote)link.send(new JSONObject().put("type","error").put("message","Comando non valido"));return;}
-  getPreferences(0).edit().putString("game",game.state.toString()).apply();
-  if(remote)link.send(new JSONObject().put("type","ack").put("id",o.optString("id")));
-  JSONObject state=game.envelope(ready,live);emit(state);if(authenticated)link.send(state);
+  if(!a.equals("boardReading"))getPreferences(0).edit().putString("game",game.state.toString()).apply();
+  if(remote&&!a.equals("boardReading"))link.send(new JSONObject().put("type","ack").put("id",o.optString("id")));
+  JSONObject state=game.envelope(ready,live);emit(state);if(authenticated&&link.idle())link.send(state);
  }
  private boolean permissions(boolean cameraMode){ArrayList<String> p=new ArrayList<>();
   if(Build.VERSION.SDK_INT>=31){p.add(Manifest.permission.BLUETOOTH_SCAN);p.add(Manifest.permission.BLUETOOTH_CONNECT);p.add(Manifest.permission.BLUETOOTH_ADVERTISE);}else p.add(Manifest.permission.ACCESS_FINE_LOCATION);
@@ -108,9 +112,9 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
   ArrayList<String> missing=new ArrayList<>();for(String s:p)if(checkSelfPermission(s)!=PackageManager.PERMISSION_GRANTED)missing.add(s);
   if(!missing.isEmpty()){requestPermissions(missing.toArray(new String[0]),8);return false;}return true;
  }
- @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);boolean all=true;for(int n:g)if(n!=PackageManager.PERMISSION_GRANTED)all=false;if(all)activateRole();else status("Consenti i permessi per usare Bluetooth e Camera");}
+ @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==81){if(g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED)startReader();else status("Consenti la fotocamera per leggere il tabellone");return;}boolean all=true;for(int n:g)if(n!=PackageManager.PERMISSION_GRANTED)all=false;if(all)activateRole();else status("Consenti i permessi per usare Bluetooth e Camera");}
  private void setRole(String selected){if(live||wantsLive){status("Ferma prima la diretta per cambiare ruolo");return;}if(!Arrays.asList("camera","regia","scores","").contains(selected))return;
-  stopCamera();link.close();authenticated=false;for(Runnable timeout:pending.values())main.removeCallbacks(timeout);pending.clear();role=selected;pin=String.format(Locale.US,"%06d",new java.security.SecureRandom().nextInt(1000000));
+  stopReader();stopCamera();link.close();authenticated=false;for(Runnable timeout:pending.values())main.removeCallbacks(timeout);pending.clear();role=selected;pin=String.format(Locale.US,"%06d",new java.security.SecureRandom().nextInt(1000000));
   if(role.equals("camera")){try{game.state.put("overlay","").put("overlayUntil",0);getPreferences(0).edit().putString("game",game.state.toString()).apply();}catch(JSONException ignored){}}
   try{emit(new JSONObject().put("type","role").put("role",role).put("pin",pin));}catch(JSONException ignored){}
   if(!role.isEmpty()&&permissions(role.equals("camera")))activateRole();
@@ -153,7 +157,8 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private void endLive(){wantsLive=false;boolean finished=live;if(soundboard!=null)soundboard.stop();if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;if(finished){game=new GameStore();getPreferences(0).edit().putBoolean("matchInProgress",false).remove("game").apply();try{emit(game.envelope(ready,false));}catch(JSONException ignored){}}}
  private void abortLive(){wantsLive=false;if(camera!=null&&camera.isStreaming())camera.stopStream();live=false;}
  private void drawOverlay()throws JSONException{
-  String renderKey=game.state.toString()+"|"+game.remaining()+"|"+(game.state.optString("overlay").equals("glitter")?System.currentTimeMillis()/500:0)+"|"+(game.state.optDouble("overlayUntil")>0&&System.currentTimeMillis()>game.state.optDouble("overlayUntil"));if(renderKey.equals(lastOverlayKey))return;
+  JSONObject visibleState=new JSONObject(game.state.toString());visibleState.remove("board");
+  String renderKey=visibleState.toString()+"|"+game.remaining()+"|"+(game.state.optString("overlay").equals("glitter")?System.currentTimeMillis()/500:0)+"|"+(game.state.optDouble("overlayUntil")>0&&System.currentTimeMillis()>game.state.optDouble("overlayUntil"));if(renderKey.equals(lastOverlayKey))return;
   int width=videoHeight==480?854:videoHeight==720?1280:1920;Bitmap b=Bitmap.createBitmap(width,videoHeight,Bitmap.Config.ARGB_8888);Canvas c=new Canvas(b);c.scale(width/1280f,videoHeight/720f);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);p.setTypeface(Typeface.create(Typeface.DEFAULT,Typeface.BOLD));p.setColor(Color.WHITE);
   JSONObject s=game.state,h=s.getJSONObject("home"),a=s.getJSONObject("away");
   if(s.optBoolean("showScore"))drawBroadcastScore(c,p,s,h,a);
@@ -209,6 +214,9 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  public final class Bridge {
   @JavascriptInterface public void dispatch(String data){main.post(()->{try{JSONObject o=new JSONObject(data);String type=o.optString("type");
    switch(type){
+    case "readerStart":startReader();break;
+    case "readerStop":stopReader();break;
+    case "readerRegions":if(role.equals("scores")&&reader!=null)reader.configure(o.optJSONObject("regions")!=null?o.optJSONObject("regions"):new JSONObject());break;
     case "role":setRole(o.optString("role"));break;
     case "scan":if(permissions(false))link.scan();break;
     case "connect":if(permissions(false))link.connect(o.getString("address"));break;
@@ -240,5 +248,22 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  });}
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==2014&&logoUpload!=null){logoUpload.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data));logoUpload=null;}}
  @Override public void onBackPressed(){if(live){new AlertDialog.Builder(this).setMessage("Ferma l’invio video prima di cambiare ruolo.").setPositiveButton("OK",null).show();}else setRole("");}
- @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);stopCamera();link.close();web.destroy();super.onDestroy();}
+ private void startReader(){
+  if(!role.equals("scores"))return;
+  if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.CAMERA},81);return;}
+  if(reader==null)reader=new BoardReader(this,new BoardReader.Events(){
+   public void event(JSONObject o){emit(o);}
+   public void reading(JSONObject values,long at){
+    if(!role.equals("scores")||!authenticated||SystemClock.elapsedRealtime()-boardStateAt>4000||SystemClock.elapsedRealtime()-boardSentAt<700||!link.idle())return;
+    boardSentAt=SystemClock.elapsedRealtime();
+    try{JSONObject data=new JSONObject().put("at",at+boardOffset).put("values",values);
+     link.send(new JSONObject().put("type","command").put("id",UUID.randomUUID().toString()).put("action","boardReading").put("text",data.toString()));
+    }catch(JSONException ignored){}
+   }
+  });
+  reader.start();try{emit(new JSONObject().put("type","readerStarted"));}catch(JSONException ignored){}
+ }
+ private void stopReader(){if(reader!=null)reader.stop();try{emit(new JSONObject().put("type","readerStopped"));}catch(JSONException ignored){}}
+ @Override protected void onPause(){super.onPause();stopReader();}
+ @Override protected void onDestroy(){if(reader!=null)reader.close();main.removeCallbacksAndMessages(null);stopCamera();link.close();web.destroy();super.onDestroy();}
 }

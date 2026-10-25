@@ -1,0 +1,13 @@
+# Lettura tabellone — prova sul campo
+
+La lettura è disponibile nel ruolo Punteggi su Android e iOS. Camera e Regia devono essere aggiornate insieme. Collegare sia il Galaxy Tab sia il telefono lettore alla stessa Camera e con lo stesso PIN, usando Cerca via Bluetooth. La Camera rimane autorevole; le immagini restano nel WebView locale del lettore. Il riconoscimento Android usa il modello ML Kit incorporato, iOS usa Vision; nessun servizio OCR cloud. Non viene acquisito audio sul lettore.
+
+1. Punteggi → Tabellone → Avvia lettura. Fissare il dispositivo e disegnare le zone delle sole cifre, scegliendo prima il campo. BAT identifica la squadra BAT, indipendentemente da casa/ospiti o dal lato del tabellone. Omettere falli/timeout se non sono numeri visibili. Ricalibrare ogni volta che cambia l'inquadratura; selezionare timeout usati, non rimasti.
+2. Verificare almeno qualche minuto in osservazione: nessun valore viene applicato automaticamente per default. Regia → Tabellone mostra le proposte. Attivare un campo, controllare il valore e confermare.
+3. Provare incremento punti, correzione negativa ufficiale, passaggio quarto/reset falli, arresto e ripartenza del tempo e ultimo minuto con decimi. OCR generico non garantisce la lettura di ogni font LED: cifre parziali, riflessi, sfarfallio e distanza vanno controllati sul dispositivo reale. Non si indovinano cifre ambigue o un separatore mancante. Il cronometro della grafica mostra secondi interi letti, senza estrapolare oltre l'ultima lettura.
+4. Correggere un punteggio dalla Regia mentre il lettore è attivo: il campo deve restare manuale; gli altri continuano. Cambiare quarto manualmente deve escludere anche entrambi i falli. Annulla non deve riattivare automatismi precedenti.
+5. Coprire il tabellone / uscire dall'app lettore / scollegare Bluetooth per oltre 3 secondi: i campi diventano manuali, i valori rimangono, il tempo non corre e la diretta continua. La ripresa delle letture non riattiva i campi.
+6. Usare contemporaneamente Regia e Punteggi, scollegare e ricollegare ciascuno, provare PIN errato su un secondo dispositivo: non deve ereditare l'autenticazione del primo.
+7. Provare almeno una partita intera in osservazione prima di affidare tutti i dati all'automatismo. La verifica CI copre compilazione, arbitraggio, parser, interfaccia e regressioni grafiche; non sostituisce la prova fisica radio/fotocamera.
+
+Limiti: una sola sorgente di lettura per partita; nessun riconoscimento automatico della disposizione del tabellone. Calibrazione locale non persistente. Salti anomali sospendono il campo e richiedono revisione. Il blocco/sblocco del telefono o un permesso negato non deve lasciare letture vecchie in coda.

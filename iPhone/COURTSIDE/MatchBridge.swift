@@ -27,10 +27,21 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
     private var isCamera = true
     private var manager: CBPeripheralManager?
     private var tx: CBMutableCharacteristic?
-    private var central: CBCentral?
-    private var authenticated = false
-    private var input = Data()
-    private var packets: [Data] = []
+    private final class Peer {
+        let central: CBCentral
+        var authenticated = false
+        var input = Data()
+        var packets: [Data] = []
+        init(_ central: CBCentral) { self.central = central }
+    }
+    private var peers: [UUID: Peer] = [:]
+    private var activePeer: Peer?
+    private var boardSource: UUID?
+    private var localAuthenticated = false
+    private var authenticated: Bool {
+        get { activePeer?.authenticated ?? localAuthenticated }
+        set { if let activePeer { activePeer.authenticated = newValue } else { localAuthenticated = newValue } }
+    }
     private var history: [Game] = []
     private var seen: [String] = []
     private var revision = 0
@@ -47,7 +58,7 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
            let data = UserDefaults.standard.data(forKey: "batLocalGame"),
            var saved = try? JSONDecoder().decode(Game.self, from: data) {
             saved.clock = Double(saved.remaining(at: now)); saved.running = false; saved.live = false
-            saved.overlay = ""; saved.overlayUntil = 0
+            saved.overlay = ""; saved.overlayUntil = 0; saved.board = BoardState()
             game = saved
         } else { game = .fresh(now: now) }
         super.init()
@@ -80,8 +91,8 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
         browser = nil; remote = nil; devices.removeAll(); clientWrites.removeAll(); writing = false; clientInput.removeAll()
         manager?.stopAdvertising()
         manager?.removeAllServices()
-        manager = nil; tx = nil; central = nil; authenticated = false; linked = false
-        packets.removeAll(); input.removeAll(); timer?.invalidate(); timer = nil
+        manager = nil; tx = nil; peers.removeAll(); activePeer = nil; authenticated = false; linked = false
+        game.board = BoardState(); boardSource = nil; timer?.invalidate(); timer = nil
         status = "Regia Bluetooth disattivata"
         pin = String(format: "%06d", Int.random(in: 0...999999))
     }
@@ -115,14 +126,15 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
             game.running = false; game.clock = 0; revision += 1; save()
         }
         // Don't append another snapshot while the BLE radio is still draining one.
-        if packets.isEmpty { sendState() }
+        game.board.expire(now: now())
+        sendState()
     }
 
     private func now() -> Double { Date().timeIntervalSince1970 * 1000 }
 
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         guard peripheral.state == .poweredOn else {
-            linked = false; authenticated = false; central = nil; packets.removeAll(); input.removeAll()
+            linked = false; authenticated = false; peers.removeAll(); activePeer = nil; game.board.manual("all")
             tx = nil
             status = peripheral.state == .unauthorized ? "Consenti Bluetooth nelle Impostazioni" : "Attiva Bluetooth sull’iPhone"
             return
@@ -147,34 +159,31 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
-        guard characteristic.uuid == Self.stateID, self.central == nil || self.central?.identifier == central.identifier else { return }
-        self.central = central; authenticated = false; linked = false
-        packets.removeAll(); input.removeAll()
-        send(["type": "hello", "protocol": 1])
+        guard characteristic.uuid == Self.stateID, peers.count < 3 || peers[central.identifier] != nil else { return }
+        let peer = Peer(central); peers[central.identifier] = peer
+        activePeer = peer; send(["type": "hello", "protocol": 2]); activePeer = nil
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
-        guard self.central?.identifier == central.identifier else { return }
-        self.central = nil; authenticated = false; linked = false
-        packets.removeAll(); input.removeAll()
-        status = "Tablet scollegato · la partita continua sull’iPhone"
+        peers.removeValue(forKey: central.identifier)
+        linked = peers.values.contains { $0.authenticated }
+        status = "Controller scollegato · la partita continua"
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]) {
         for request in requests {
             guard request.characteristic.uuid == Self.commandID, request.offset == 0,
-                  central?.identifier == request.central.identifier, let value = request.value else {
+                  let peer = peers[request.central.identifier], let value = request.value else {
                 peripheral.respond(to: request, withResult: .insufficientAuthorization); continue
             }
-            guard input.count + value.count <= 16384 else {
-                input.removeAll(); peripheral.respond(to: request, withResult: .invalidAttributeValueLength); continue
+            guard peer.input.count + value.count <= 16384 else {
+                peer.input.removeAll(); peripheral.respond(to: request, withResult: .invalidAttributeValueLength); continue
             }
-            input.append(value)
+            peer.input.append(value)
             peripheral.respond(to: request, withResult: .success)
-            while let delimiter = input.firstIndex(of: 10) {
-                let line = input.prefix(upTo: delimiter)
-                input.removeSubrange(...delimiter)
-                receive(Data(line))
+            while let delimiter = peer.input.firstIndex(of: 10) {
+                let line = Data(peer.input.prefix(upTo: delimiter)); peer.input.removeSubrange(...delimiter)
+                activePeer = peer; receive(line); activePeer = nil
             }
         }
     }
@@ -202,6 +211,13 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
         guard type == "command", let id = object["id"] as? String, id.count <= 64,
               let action = object["action"] as? String else { return }
         if seen.contains(id) { send(["type": "ack", "id": id]); return }
+        if action == "boardReading", let sender = activePeer?.central.identifier {
+            if let boardSource, boardSource != sender {
+                guard now() - game.board.lastAt > 3000 else { return }
+                game.board = BoardState()
+            }
+            boardSource = sender
+        }
         var accepted = true
         if action == "liveStart" || action == "liveStop" {
             onLiveCommand?(action == "liveStart")
@@ -210,19 +226,20 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
         } else if action == "undo" {
             if var previous = history.popLast() {
                 previous.clock = Double(previous.remaining(at: now())); previous.running = false; previous.live = publishing
+                previous.board = game.board; previous.board.manual("all")
                 game = previous
             }
         } else {
             var next = game
             accepted = next.apply(action, team: object["team"] as? String, value: object["value"] as? Int, text: object["text"] as? String, now: now())
             if accepted {
-                history.append(game); if history.count > 30 { history.removeFirst() }; game = next
+                if !action.hasPrefix("board") { history.append(game); if history.count > 30 { history.removeFirst() } }; game = next
             }
         }
         guard accepted else { send(["type": "error", "message": "Comando non valido"]); return }
         seen.append(id); if seen.count > 100 { seen.removeFirst() }
-        revision += 1; save()
-        send(["type": "ack", "id": id]); sendState()
+        revision += 1; if action != "boardReading" { save() }
+        if action != "boardReading" { send(["type": "ack", "id": id]) }; sendState()
     }
 
     private func sendState() {
@@ -230,26 +247,34 @@ final class MatchBridge: NSObject, ObservableObject, CBPeripheralManagerDelegate
               let state = try? JSONSerialization.jsonObject(with: encoded) else { return }
         let snapshot: [String: Any] = ["type": "state", "state": state, "revision": revision, "serverNow": now(), "cameraReady": cameraReady, "publishing": publishing]
         onEvent?(snapshot)
-        if authenticated && packets.isEmpty { send(snapshot) }
-    }
-
-    private func send(_ value: [String: Any]) {
-        guard let central, let bytes = try? JSONSerialization.data(withJSONObject: value) else { return }
-        let data = bytes + Data([10])
-        let maximum = max(1, min(central.maximumUpdateValueLength, 180))
-        guard packets.count < 500 else { return }
-        for offset in stride(from: 0, to: data.count, by: maximum) {
-            packets.append(data.subdata(in: offset..<min(offset + maximum, data.count)))
-        }
-        onEvent?(value)
+        for peer in peers.values where peer.authenticated && peer.packets.isEmpty { enqueue(snapshot, peer: peer) }
         flush()
     }
 
+    private func send(_ value: [String: Any]) {
+        if let activePeer { enqueue(value, peer: activePeer) }
+        else { onEvent?(value) }
+        flush()
+    }
+    private func enqueue(_ value: [String: Any], peer: Peer) {
+        guard let bytes = try? JSONSerialization.data(withJSONObject: value), peer.packets.count < 500 else { return }
+        let data = bytes + Data([10]), maximum = max(1, min(peer.central.maximumUpdateValueLength, 180))
+        for offset in stride(from: 0, to: data.count, by: maximum) {
+            peer.packets.append(data.subdata(in: offset..<min(offset + maximum, data.count)))
+        }
+    }
     private func flush() {
-        guard let manager, let tx, let central else { return }
-        while let packet = packets.first {
-            guard manager.updateValue(packet, for: tx, onSubscribedCentrals: [central]) else { return }
-            packets.removeFirst()
+        guard let manager, let tx else { return }
+        // Round-robin: an OCR client cannot monopolize state notifications to Regia.
+        var progressed = true
+        while progressed {
+            progressed = false
+            for peer in peers.values {
+                if let packet = peer.packets.first {
+                    guard manager.updateValue(packet, for: tx, onSubscribedCentrals: [peer.central]) else { return }
+                    peer.packets.removeFirst(); progressed = true
+                }
+            }
         }
     }
 
@@ -298,6 +323,7 @@ extension MatchBridge: CBCentralManagerDelegate, CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         status = error == nil ? "Bluetooth pronto · inserisci il codice della Camera" : "Conferma l’abbinamento Bluetooth e riprova"
     }
+    var clientIdle: Bool { clientWrites.isEmpty && !writing }
     func sendCommand(_ value: [String: Any]) {
         guard let remote, let remoteRX, let bytes = try? JSONSerialization.data(withJSONObject: value) else { status = "Collega prima la Camera"; return }
         let payload = bytes + Data([10]); let length = max(1, min(remote.maximumWriteValueLength(for: .withResponse), 180))
