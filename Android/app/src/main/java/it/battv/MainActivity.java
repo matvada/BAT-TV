@@ -22,6 +22,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  private int videoHeight=1080;
  private int currentBitrate=1800000,stableReports=0;private boolean wantsLive=false;private int retryAttempts=0;
  private String lastOverlayKey="";
+ private boolean readerRequested=false;
  private String boardSource="";
  private BoardReader reader;private long boardOffset=0,boardStateAt=0,boardSentAt=0;
  private BleLink link;private GameStore game;private String role="",pin="",serverUrl="",streamKey="";
@@ -114,7 +115,7 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
  }
  @Override public void onRequestPermissionsResult(int r,String[] p,int[] g){super.onRequestPermissionsResult(r,p,g);if(r==81){if(g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED)startReader();else status("Consenti la fotocamera per leggere il tabellone");return;}boolean all=true;for(int n:g)if(n!=PackageManager.PERMISSION_GRANTED)all=false;if(all)activateRole();else status("Consenti i permessi per usare Bluetooth e Camera");}
  private void setRole(String selected){if(live||wantsLive){status("Ferma prima la diretta per cambiare ruolo");return;}if(!Arrays.asList("camera","regia","scores","").contains(selected))return;
-  stopReader();stopCamera();link.close();authenticated=false;for(Runnable timeout:pending.values())main.removeCallbacks(timeout);pending.clear();role=selected;pin=String.format(Locale.US,"%06d",new java.security.SecureRandom().nextInt(1000000));
+  stopReader();stopCamera();link.close();authenticated=false;for(Runnable timeout:pending.values())main.removeCallbacks(timeout);pending.clear();role=selected;setRequestedOrientation(role.equals("scores")?android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR:android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);pin=String.format(Locale.US,"%06d",new java.security.SecureRandom().nextInt(1000000));
   if(role.equals("camera")){try{game.state.remove("board");boardSource="";game.state.put("overlay","").put("overlayUntil",0);getPreferences(0).edit().putString("game",game.state.toString()).apply();}catch(JSONException ignored){}}
   try{emit(new JSONObject().put("type","role").put("role",role).put("pin",pin));}catch(JSONException ignored){}
   if(!role.isEmpty()&&permissions(role.equals("camera")))activateRole();
@@ -261,9 +262,10 @@ public final class MainActivity extends Activity implements BleLink.Events,Conne
     }catch(JSONException ignored){}
    }
   });
-  reader.start();try{emit(new JSONObject().put("type","readerStarted"));}catch(JSONException ignored){}
+  readerRequested=true;reader.start();try{emit(new JSONObject().put("type","readerStarted"));}catch(JSONException ignored){}
  }
- private void stopReader(){if(reader!=null)reader.stop();try{emit(new JSONObject().put("type","readerStopped"));}catch(JSONException ignored){}}
+ private void stopReader(){readerRequested=false;if(reader!=null)reader.stop();try{emit(new JSONObject().put("type","readerStopped"));}catch(JSONException ignored){}}
+ @Override public void onConfigurationChanged(android.content.res.Configuration config){super.onConfigurationChanged(config);if(role.equals("scores")&&readerRequested){stopReader();try{emit(new JSONObject().put("type","readerRotated"));}catch(JSONException ignored){}startReader();}}
  @Override protected void onPause(){super.onPause();stopReader();}
  @Override protected void onDestroy(){if(reader!=null)reader.close();main.removeCallbacksAndMessages(null);stopCamera();link.close();web.destroy();super.onDestroy();}
 }
