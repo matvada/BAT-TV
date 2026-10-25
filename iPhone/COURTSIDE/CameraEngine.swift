@@ -402,7 +402,8 @@ final class CameraEngine: ObservableObject {
         guard let game else { return }
         let now = serverNow()
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
-        let state = (try? encoder.encode(game).base64EncodedString()) ?? ""
+        var visibleGame = game; visibleGame.board = BoardState()
+        let state = (try? encoder.encode(visibleGame).base64EncodedString()) ?? ""
         let overlay = game.visibleOverlay(at: now)
         let tick = overlay == "glitter" ? Int(now / 250) : game.remaining(at: now)
         let key = "\(state)|\(overlay)|\(tick)|\(quality)"

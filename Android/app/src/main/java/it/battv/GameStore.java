@@ -21,6 +21,7 @@ public final class GameStore {
   if(seen.contains(id))return true;
   JSONObject next=new JSONObject(state.toString());int v=c.optInt("value");String t=c.optString("team"),text=c.optString("text");long now=System.currentTimeMillis();
   switch(a){
+   case "boardReading":case "boardAuto":case "boardManual":if(!BoardState.apply(next,a,text,now))return false;break;
    case "score":case "foul":case "timeout":
     if(!t.equals("home")&&!t.equals("away")||v < -3||v>3)return false;
     String key=a.equals("score")?"score":a.equals("foul")?"fouls":"timeouts";
@@ -52,10 +53,11 @@ public final class GameStore {
     else return false;break;
    case "teamLogo":if((!t.equals("home")&&!t.equals("away"))||!(text.isEmpty()||text.matches("preset:(bat|hub|cbc|bin|vac|vbs|oli|rob|mi3|cat)")||(text.length()<=4600&&text.matches("data:image/png;base64,[A-Za-z0-9+/]+={0,2}"))))return false;
     next.getJSONObject(t).put("logo",text);break;
-   case "undo":if(!history.isEmpty()){next=history.removeLast();next.put("clock",remaining(next,now)).put("running",false).put("live",state.optBoolean("live"));}break;
+   case "undo":if(!history.isEmpty()){next=history.removeLast();next.put("board",BoardState.get(state));next.put("clock",remaining(next,now)).put("running",false).put("live",state.optBoolean("live"));}break;
    default:return false;
   }
-  if(!a.equals("undo")){history.add(new JSONObject(state.toString()));while(history.size()>30)history.removeFirst();}
+  BoardState.override(next,a,t);
+  if(!a.equals("undo")&&!a.startsWith("board")){history.add(new JSONObject(state.toString()));while(history.size()>30)history.removeFirst();}
   state=next;revision++;seen.add(id);while(seen.size()>100)seen.remove(seen.iterator().next());return true;
  }
  public JSONObject envelope(boolean ready,boolean live)throws JSONException {state.put("live",live);return new JSONObject().put("type","state").put("state",state).put("revision",revision).put("serverNow",System.currentTimeMillis()).put("cameraReady",ready).put("publishing",live);}

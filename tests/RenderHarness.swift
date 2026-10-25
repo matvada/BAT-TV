@@ -21,6 +21,28 @@ final class RenderHarness: UIResponder, UIApplicationDelegate {
             assert(BATStreamPolicy.bitrate(current: 400_000, ceiling: 1_800_000, queue: 0, bytesPerSecond: 250_000, stable: &stable) == 475_000)
             stable = 19
             assert(BATStreamPolicy.bitrate(current: 1_800_000, ceiling: 1_800_000, queue: 0, bytesPerSecond: 250_000, stable: &stable) == 1_800_000)
+            var boardGame = Game.fresh(now: 1000)
+            func reading(_ at: Int, _ key: String, _ value: Int) -> String { "{\"at\":\(at),\"values\":{\"\(key)\":\(value)}}" }
+            func enable(_ key: String, _ value: Int) -> String { "{\"field\":\"\(key)\",\"value\":\(value)}" }
+            assert(boardGame.apply("boardReading", team: nil, value: nil, text: reading(1000, "homeScore", 42), now: 1000))
+            assert(boardGame.home.score == 0)
+            assert(boardGame.apply("boardAuto", team: nil, value: nil, text: enable("homeScore", 42), now: 1000))
+            assert(boardGame.home.score == 42)
+            assert(boardGame.apply("score", team: "home", value: 1, text: nil, now: 1100))
+            assert(boardGame.apply("boardReading", team: nil, value: nil, text: reading(2000, "homeScore", 42), now: 2000))
+            assert(boardGame.home.score == 43 && boardGame.board.automatic.isEmpty)
+            assert(!boardGame.apply("boardReading", team: nil, value: nil, text: reading(1000, "homeScore", 42), now: 2000))
+            assert(!boardGame.apply("boardReading", team: nil, value: nil, text: reading(10000, "homeScore", 42), now: 2000))
+            assert(!boardGame.apply("boardAuto", team: nil, value: nil, text: enable("homeScore", 42), now: 6000))
+            assert(boardGame.apply("boardReading", team: nil, value: nil, text: reading(6000, "clock", 60), now: 6000))
+            assert(boardGame.apply("boardAuto", team: nil, value: nil, text: enable("clock", 60), now: 6000))
+            assert(boardGame.remaining(at: 10000) == 60 && !boardGame.running)
+            boardGame.board.expire(now: 10000)
+            assert(boardGame.board.automatic.isEmpty)
+            assert(boardGame.apply("boardReading", team: nil, value: nil, text: reading(10000, "clock", 55), now: 10000))
+            assert(boardGame.clock == 60)
+            let boardRoundTrip = try JSONDecoder().decode(Game.self, from: JSONEncoder().encode(boardGame))
+            assert(boardRoundTrip.board.candidates["clock"]?.value == 55)
             var game = Game.fresh(now: 1000)
             game.home.score = 32; game.home.fouls = 2; game.home.timeouts = 1
             assert(game.apply("opponentPreset", team: nil, value: nil, text: "hub", now: 1000))

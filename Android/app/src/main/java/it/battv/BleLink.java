@@ -16,7 +16,13 @@ public final class BleLink {
  private final Context context;private final Events events;private final Handler main=new Handler(Looper.getMainLooper());
  private final BluetoothAdapter adapter;private BluetoothGatt client;private BluetoothGattServer server;private BluetoothDevice remote;
  private BluetoothGattCharacteristic rx,tx;private BluetoothLeAdvertiser advertiser;private BluetoothLeScanner scanner;
- private final ArrayDeque<byte[]> writes=new ArrayDeque<>(),notifies=new ArrayDeque<>();private final ByteArrayOutputStream input=new ByteArrayOutputStream();
+ private static final class Peer { final BluetoothDevice device; int mtu=23; boolean authorized; final ByteArrayOutputStream input=new ByteArrayOutputStream(); Peer(BluetoothDevice d){device=d;} }
+ private static final class Packet { final Peer peer; final byte[] data; Packet(Peer p,byte[] d){peer=p;data=d;} }
+ private final HashMap<String,Integer> peerMTUs=new HashMap<>();
+ private final LinkedHashMap<String,Peer> peers=new LinkedHashMap<>();
+ private Peer activePeer;
+ private final ArrayDeque<Packet> notifies=new ArrayDeque<>();
+ private final ArrayDeque<byte[]> writes=new ArrayDeque<>();private final ByteArrayOutputStream input=new ByteArrayOutputStream();
  private boolean writing=false,notifying=false,scanning=false;private int mtu=23;
  private final HashSet<String> found=new HashSet<>();
  public BleLink(Context context,Events events){this.context=context;this.events=events;adapter=((BluetoothManager)context.getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();}
@@ -69,27 +75,53 @@ public final class BleLink {
    if(server==null||advertiser==null)return;if(status!=0){events.status("Servizio BLE fallito: "+status);return;}
    advertiser.startAdvertising(new AdvertiseSettings.Builder().setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY).setConnectable(true).build(),new AdvertiseData.Builder().addServiceUuid(new ParcelUuid(SERVICE)).build(),advertiseCallback);
   });}
-  @Override public void onConnectionStateChange(BluetoothDevice device,int status,int state){main.post(()->{if(state==BluetoothProfile.STATE_DISCONNECTED&&remote!=null&&remote.equals(device)){remote=null;input.reset();notifies.clear();notifying=false;events.status("Controller scollegato · la partita continua");try{events.message(new JSONObject().put("type","unpaired"));}catch(JSONException ignored){}}});}
-  @Override public void onMtuChanged(BluetoothDevice device,int m){main.post(()->{if(remote==null||remote.equals(device))mtu=m;});}
+  @Override public void onConnectionStateChange(BluetoothDevice device,int status,int state){main.post(()->{
+   if(state==BluetoothProfile.STATE_DISCONNECTED){peers.remove(device.getAddress());peerMTUs.remove(device.getAddress());events.status("Controller scollegato · la partita continua");try{events.message(new JSONObject().put("type","unpaired"));}catch(JSONException ignored){}}
+  });}
+  @Override public void onMtuChanged(BluetoothDevice device,int m){main.post(()->{peerMTUs.put(device.getAddress(),m);Peer p=peers.get(device.getAddress());if(p!=null)p.mtu=m;});}
   @Override public void onDescriptorWriteRequest(BluetoothDevice device,int id,BluetoothGattDescriptor descriptor,boolean prepared,boolean response,int offset,byte[] value){main.post(()->{
-   if(server==null)return;boolean allowed=remote==null||remote.equals(device);
+   if(server==null)return;boolean allowed=peers.containsKey(device.getAddress())||peers.size()<3;
    if(prepared||offset!=0||!allowed){if(response)server.sendResponse(device,id,BluetoothGatt.GATT_FAILURE,offset,null);return;}
    if(response)server.sendResponse(device,id,BluetoothGatt.GATT_SUCCESS,0,null);
-   if(Arrays.equals(value,BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)){remote=device;input.reset();notifies.clear();notifying=false;sendRaw("{\"type\":\"hello\",\"protocol\":1}");}
-   else if(Arrays.equals(value,BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE)){remote=null;notifies.clear();notifying=false;try{events.message(new JSONObject().put("type","unpaired"));}catch(JSONException ignored){}}
+   if(Arrays.equals(value,BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)){
+    Peer peer=new Peer(device);peer.mtu=peerMTUs.getOrDefault(device.getAddress(),23);peers.put(device.getAddress(),peer);activePeer=peer;sendRaw("{\"type\":\"hello\",\"protocol\":2}");activePeer=null;
+   }else if(Arrays.equals(value,BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE)){peers.remove(device.getAddress());}
   });}
   @Override public void onCharacteristicWriteRequest(BluetoothDevice device,int id,BluetoothGattCharacteristic characteristic,boolean prepared,boolean response,int offset,byte[] value){main.post(()->{
-   if(server==null)return;boolean allowed=remote!=null&&remote.equals(device)&&characteristic.getUuid().equals(RX)&&offset==0&&!prepared;
+   if(server==null)return;Peer peer=peers.get(device.getAddress());boolean allowed=peer!=null&&characteristic.getUuid().equals(RX)&&offset==0&&!prepared;
    if(response)server.sendResponse(device,id,allowed?BluetoothGatt.GATT_SUCCESS:BluetoothGatt.GATT_FAILURE,offset,null);
-   if(allowed)receive(value);
+   if(allowed){activePeer=peer;receive(value);activePeer=null;}
   });}
-  @Override public void onNotificationSent(BluetoothDevice device,int status){main.post(()->{notifying=false;if(status!=0){notifies.clear();events.status("Notifica Bluetooth non consegnata");return;}if(!notifies.isEmpty())notifies.removeFirst();flushNotifies();});}
+  @Override public void onNotificationSent(BluetoothDevice device,int status){main.post(()->{
+   if(!notifies.isEmpty()&&notifies.peekFirst().peer.device.equals(device)){notifies.removeFirst();notifying=false;}flushNotifies();
+  });}
  };
- private void receive(byte[] bytes){for(byte b:bytes){if(b==10){byte[] line=input.toByteArray();input.reset();try{events.message(new JSONObject(new String(line,StandardCharsets.UTF_8)));}catch(JSONException ignored){events.status("Messaggio Bluetooth non valido");}}else if(input.size()<16384)input.write(b);else {input.reset();events.status("Messaggio Bluetooth troppo grande");}}}
- public void send(JSONObject o){sendRaw(o.toString());}
- private void sendRaw(String json){byte[] data=(json+"\n").getBytes(StandardCharsets.UTF_8);int chunk=Math.max(20,Math.min(mtu-3,180));ArrayDeque<byte[]> q=server!=null?notifies:writes;if(q.size()>500){events.status("Bluetooth occupato · attendi");return;}for(int i=0;i<data.length;i+=chunk)q.add(Arrays.copyOfRange(data,i,Math.min(i+chunk,data.length)));if(server!=null)flushNotifies();else flushWrites();}
+ private void receive(byte[] bytes){ByteArrayOutputStream input=activePeer!=null?activePeer.input:this.input;for(byte b:bytes){if(b==10){byte[] line=input.toByteArray();input.reset();try{events.message(new JSONObject(new String(line,StandardCharsets.UTF_8)));}catch(JSONException ignored){events.status("Messaggio Bluetooth non valido");}}else if(input.size()<16384)input.write(b);else {input.reset();events.status("Messaggio Bluetooth troppo grande");}}}
+ public boolean hasAuthorized(){for(Peer p:peers.values())if(p.authorized)return true;return false;}
+ public String senderId(){return activePeer==null?"":activePeer.device.getAddress();}
+ public boolean senderAuthorized(){return activePeer!=null&&activePeer.authorized;}
+ public void authorizeSender(){if(activePeer!=null)activePeer.authorized=true;}
+ public void send(JSONObject o){
+  if(server!=null&&o.optString("type").equals("state")){
+   for(Peer p:peers.values())if(p.authorized)enqueue(o.toString(),p);flushNotifies();
+  }else sendRaw(o.toString());
+ }
+ private void enqueue(String json,Peer p){
+  if(notifies.size()>500)return;byte[] data=(json+"\n").getBytes(StandardCharsets.UTF_8);int chunk=Math.max(20,Math.min(p.mtu-3,180));
+  for(int i=0;i<data.length;i+=chunk)notifies.add(new Packet(p,Arrays.copyOfRange(data,i,Math.min(i+chunk,data.length))));
+ }
+ private void sendRaw(String json){
+  if(server!=null){if(activePeer!=null)enqueue(json,activePeer);flushNotifies();return;}
+  byte[] data=(json+"\n").getBytes(StandardCharsets.UTF_8);int chunk=Math.max(20,Math.min(mtu-3,180));if(writes.size()>500){events.status("Bluetooth occupato · attendi");return;}
+  for(int i=0;i<data.length;i+=chunk)writes.add(Arrays.copyOfRange(data,i,Math.min(i+chunk,data.length)));flushWrites();
+ }
  private void flushWrites(){if(writing||writes.isEmpty()||client==null||rx==null)return;rx.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);rx.setValue(writes.peekFirst());writing=client.writeCharacteristic(rx);if(!writing){writes.clear();events.status("Invio Bluetooth non riuscito");}}
- private void flushNotifies(){if(notifying||notifies.isEmpty()||server==null||remote==null||tx==null)return;tx.setValue(notifies.peekFirst());notifying=server.notifyCharacteristicChanged(remote,tx,false);if(!notifying){notifies.clear();events.status("Bluetooth non pronto");}}
+ private void flushNotifies(){
+  if(notifying||server==null||tx==null)return;
+  while(!notifies.isEmpty()&&!peers.containsValue(notifies.peekFirst().peer))notifies.removeFirst();
+  if(notifies.isEmpty())return;Packet p=notifies.peekFirst();tx.setValue(p.data);notifying=server.notifyCharacteristicChanged(p.peer.device,tx,false);
+  if(!notifying){notifies.clear();events.status("Bluetooth non pronto");}
+ }
  public boolean idle(){return writes.isEmpty()&&notifies.isEmpty();}
- public void close(){stopScan();clearClient();if(advertiser!=null){advertiser.stopAdvertising(advertiseCallback);advertiser=null;}if(server!=null){server.close();server=null;}remote=null;rx=null;tx=null;notifies.clear();notifying=false;}
+ public void close(){stopScan();clearClient();if(advertiser!=null){advertiser.stopAdvertising(advertiseCallback);advertiser=null;}if(server!=null){server.close();server=null;}remote=null;peerMTUs.clear();peers.clear();activePeer=null;rx=null;tx=null;notifies.clear();notifying=false;}
 }
