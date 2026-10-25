@@ -12,10 +12,10 @@
       "tintColor": "#512A7D",
       "versions": [
         {
-          "version": "1.0.50",
-          "date": "2026-10-24T14:33:48Z",
-          "downloadURL": "https://github.com/matvada/BAT-TV/releases/download/ios-build-50/BAT-tv-1.0.50-iPhone.ipa",
-          "size": 7122990,
+          "version": "1.0.51",
+          "date": "2026-10-25T08:57:33Z",
+          "downloadURL": "https://github.com/matvada/BAT-TV/releases/download/ios-build-51/BAT-tv-1.0.51-iPhone.ipa",
+          "size": 7159606,
           "minOSVersion": "17.0"
         }
       ]
