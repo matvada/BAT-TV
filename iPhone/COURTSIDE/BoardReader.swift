@@ -16,14 +16,18 @@ final class BoardReader: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate 
     private var active = false
     private var lastFrame = 0.0
     private var generation = 0
+    private var requestGeneration = 0
 
     private func emit(_ event: [String: Any]) { DispatchQueue.main.async { [weak self] in self?.onEvent?(event) } }
     func configure(_ value: [String: [Double]]) { queue.async { self.regions = value; self.previous = [:]; self.counts = [:]; self.generation += 1 } }
     func start(orientation: AVCaptureVideoOrientation) {
-        AVCaptureDevice.requestAccess(for: .video) { granted in
-            guard granted else { self.emit(["type": "readerStatus", "message": "Consenti la fotocamera nelle Impostazioni"]); return }
-            self.queue.async {
-                guard !self.active else { return }
+        queue.async {
+            self.requestGeneration += 1
+            let request = self.requestGeneration
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                self.queue.async {
+                guard request == self.requestGeneration, !self.active else { return }
+                guard granted else { self.emit(["type": "readerStatus", "message": "Consenti la fotocamera nelle Impostazioni"]); return }
                 do {
                     self.session.beginConfiguration(); self.session.sessionPreset = .hd1280x720
                     self.session.inputs.forEach { self.session.removeInput($0) }; self.session.outputs.forEach { self.session.removeOutput($0) }
@@ -46,7 +50,8 @@ final class BoardReader: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate 
             }
         }
     }
-    func stop() { queue.async { self.active = false; self.generation += 1; self.previous = [:]; self.counts = [:]; self.session.stopRunning(); self.emit(["type": "readerStopped"]) } }
+    }
+    func stop() { queue.async { self.requestGeneration += 1; self.active = false; self.generation += 1; self.previous = [:]; self.counts = [:]; self.session.stopRunning(); self.emit(["type": "readerStopped"]) } }
     static func parse(_ field: String, _ raw: String) -> Int? {
         let text = raw.components(separatedBy: .whitespacesAndNewlines).joined()
         let value: Int

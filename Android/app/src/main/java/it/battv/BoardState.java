@@ -34,10 +34,10 @@ public final class BoardState {
   if(!action.equals("boardReading"))return false;
   double at=p.optDouble("at",0);JSONObject values=p.optJSONObject("values");
   if(!Double.isFinite(at)||at<=b.optDouble("lastAt",0)||at>now+500||now-at>3000||values==null)return false;
-  for(String k:values.keySet()){Object v=values.get(k);if(!(v instanceof Number)||((Number)v).doubleValue()!=((Number)v).intValue()||!valid(k,((Number)v).intValue()))return false;}
+  for(Iterator<String> keys=values.keys();keys.hasNext();){String k=keys.next();Object v=values.get(k);if(!(v instanceof Number)||((Number)v).doubleValue()!=((Number)v).intValue()||!valid(k,((Number)v).intValue()))return false;}
   b.put("lastAt",at);
-  for(String k:values.keySet()){
-   int v=values.getInt(k);JSONObject prior=c.optJSONObject(k);
+  for(Iterator<String> keys=values.keys();keys.hasNext();){
+   String k=keys.next();int v=values.getInt(k);JSONObject prior=c.optJSONObject(k);
    c.put(k,new JSONObject().put("value",v).put("at",at));
    if(enabled(b,k)){
     // A gap or an implausible jump suspends this field until explicit operator review.

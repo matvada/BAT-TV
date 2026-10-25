@@ -18,6 +18,7 @@ public final class BleLink {
  private BluetoothGattCharacteristic rx,tx;private BluetoothLeAdvertiser advertiser;private BluetoothLeScanner scanner;
  private static final class Peer { final BluetoothDevice device; int mtu=23; boolean authorized; final ByteArrayOutputStream input=new ByteArrayOutputStream(); Peer(BluetoothDevice d){device=d;} }
  private static final class Packet { final Peer peer; final byte[] data; Packet(Peer p,byte[] d){peer=p;data=d;} }
+ private final HashMap<String,Integer> peerMTUs=new HashMap<>();
  private final LinkedHashMap<String,Peer> peers=new LinkedHashMap<>();
  private Peer activePeer;
  private final ArrayDeque<Packet> notifies=new ArrayDeque<>();
@@ -75,15 +76,15 @@ public final class BleLink {
    advertiser.startAdvertising(new AdvertiseSettings.Builder().setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY).setConnectable(true).build(),new AdvertiseData.Builder().addServiceUuid(new ParcelUuid(SERVICE)).build(),advertiseCallback);
   });}
   @Override public void onConnectionStateChange(BluetoothDevice device,int status,int state){main.post(()->{
-   if(state==BluetoothProfile.STATE_DISCONNECTED){peers.remove(device.getAddress());events.status("Controller scollegato · la partita continua");try{events.message(new JSONObject().put("type","unpaired"));}catch(JSONException ignored){}}
+   if(state==BluetoothProfile.STATE_DISCONNECTED){peers.remove(device.getAddress());peerMTUs.remove(device.getAddress());events.status("Controller scollegato · la partita continua");try{events.message(new JSONObject().put("type","unpaired"));}catch(JSONException ignored){}}
   });}
-  @Override public void onMtuChanged(BluetoothDevice device,int m){main.post(()->{Peer p=peers.get(device.getAddress());if(p!=null)p.mtu=m;});}
+  @Override public void onMtuChanged(BluetoothDevice device,int m){main.post(()->{peerMTUs.put(device.getAddress(),m);Peer p=peers.get(device.getAddress());if(p!=null)p.mtu=m;});}
   @Override public void onDescriptorWriteRequest(BluetoothDevice device,int id,BluetoothGattDescriptor descriptor,boolean prepared,boolean response,int offset,byte[] value){main.post(()->{
    if(server==null)return;boolean allowed=peers.containsKey(device.getAddress())||peers.size()<3;
    if(prepared||offset!=0||!allowed){if(response)server.sendResponse(device,id,BluetoothGatt.GATT_FAILURE,offset,null);return;}
    if(response)server.sendResponse(device,id,BluetoothGatt.GATT_SUCCESS,0,null);
    if(Arrays.equals(value,BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)){
-    Peer peer=new Peer(device);peers.put(device.getAddress(),peer);activePeer=peer;sendRaw("{\"type\":\"hello\",\"protocol\":2}");activePeer=null;
+    Peer peer=new Peer(device);peer.mtu=peerMTUs.getOrDefault(device.getAddress(),23);peers.put(device.getAddress(),peer);activePeer=peer;sendRaw("{\"type\":\"hello\",\"protocol\":2}");activePeer=null;
    }else if(Arrays.equals(value,BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE)){peers.remove(device.getAddress());}
   });}
   @Override public void onCharacteristicWriteRequest(BluetoothDevice device,int id,BluetoothGattCharacteristic characteristic,boolean prepared,boolean response,int offset,byte[] value){main.post(()->{
@@ -122,5 +123,5 @@ public final class BleLink {
   if(!notifying){notifies.clear();events.status("Bluetooth non pronto");}
  }
  public boolean idle(){return writes.isEmpty()&&notifies.isEmpty();}
- public void close(){stopScan();clearClient();if(advertiser!=null){advertiser.stopAdvertising(advertiseCallback);advertiser=null;}if(server!=null){server.close();server=null;}remote=null;peers.clear();activePeer=null;rx=null;tx=null;notifies.clear();notifying=false;}
+ public void close(){stopScan();clearClient();if(advertiser!=null){advertiser.stopAdvertising(advertiseCallback);advertiser=null;}if(server!=null){server.close();server=null;}remote=null;peerMTUs.clear();peers.clear();activePeer=null;rx=null;tx=null;notifies.clear();notifying=false;}
 }

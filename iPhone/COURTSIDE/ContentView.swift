@@ -172,7 +172,7 @@ struct BATHybridView: UIViewRepresentable {
                 self?.emit(event)
             }
             pauseObserver = NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
-                self?.readerActive = false; self?.reader?.stop()
+                if self?.readerActive == true { UIApplication.shared.isIdleTimerDisabled = false }; self?.readerActive = false; self?.reader?.stop()
             }
             camera.bridge.$status.sink { [weak self] message in self?.emit(["type": "status", "message": message]) }.store(in: &subscriptions)
             camera.$message.sink { [weak self] message in if self?.role == "camera" { self?.emit(["type": "status", "message": message]) } }.store(in: &subscriptions)
@@ -192,7 +192,7 @@ struct BATHybridView: UIViewRepresentable {
                 let selected = object["role"] as? String ?? ""
                 guard ["", "camera", "regia", "scores"].contains(selected) else { return }
                 Task { @MainActor in
-                    readerActive = false; reader?.stop(); await camera.stopCamera(); camera.bridge.stop(); role = selected
+                    if readerActive { UIApplication.shared.isIdleTimerDisabled = false }; readerActive = false; reader?.stop(); await camera.stopCamera(); camera.bridge.stop(); role = selected
                     web?.scrollView.isScrollEnabled = selected != "camera"
                     emit(["type": "role", "role": selected, "pin": camera.bridge.pin])
                     emit(["type": "quality", "height": camera.quality])
@@ -200,7 +200,7 @@ struct BATHybridView: UIViewRepresentable {
                     else if !selected.isEmpty { camera.bridge.startController() }
                 }
             case "readerStart": startReader()
-            case "readerStop": readerActive = false; reader?.stop()
+            case "readerStop": if readerActive { UIApplication.shared.isIdleTimerDisabled = false }; readerActive = false; reader?.stop()
             case "readerRegions":
                 if role == "scores" { reader?.configure(object["regions"] as? [String: [Double]] ?? [:]) }
             case "scan": camera.bridge.scan()
@@ -250,6 +250,7 @@ struct BATHybridView: UIViewRepresentable {
                 reader = scanner
             }
             readerActive = true
+            UIApplication.shared.isIdleTimerDisabled = true
             let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
             reader?.start(orientation: scene?.interfaceOrientation == .landscapeLeft ? .landscapeLeft : .landscapeRight)
         }
